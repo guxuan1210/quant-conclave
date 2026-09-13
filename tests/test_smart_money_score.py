@@ -14,7 +14,7 @@ from datetime import datetime
 
 import pytest
 
-from capitalradar.sector_scan.smart_money_score import (
+from quantconclave.sector_scan.smart_money_score import (
     _fetch_flow_data,
     _fetch_price_data,
     _fetch_realtime_flow_signal,
@@ -84,10 +84,10 @@ def test_fetch_price_data_stale_daily_uses_realtime_change(monkeypatch):
     """Stale daily bar + Tencent-style realtime quote → today_change is the
     realtime-vs-last-close move and data_date is today."""
     monkeypatch.setattr(
-        "capitalradar.agents.utils.core_stock_tools.get_stock_data",
+        "quantconclave.agents.utils.core_stock_tools.get_stock_data",
         _FakeInvoke(_CSV_STALE))
     monkeypatch.setattr(
-        "capitalradar.dataflows.interface.route_to_vendor",
+        "quantconclave.dataflows.interface.route_to_vendor",
         lambda method, symbol="": "**Current Price**: 24.35\n")
 
     out = _fetch_price_data("600030.SH", {})
@@ -114,11 +114,11 @@ def test_fetch_price_data_daily_already_today_falls_back_when_realtime_gone(monk
         "2026-08-19,22.80\n"
     )
     monkeypatch.setattr(
-        "capitalradar.agents.utils.core_stock_tools.get_stock_data",
+        "quantconclave.agents.utils.core_stock_tools.get_stock_data",
         _FakeInvoke(csv_text))
     calls = []
     monkeypatch.setattr(
-        "capitalradar.dataflows.interface.route_to_vendor",
+        "quantconclave.dataflows.interface.route_to_vendor",
         lambda method, symbol="": calls.append(method) or "# SKIP_VENDOR: unreachable")
 
     out = _fetch_price_data("600030.SH", {})
@@ -130,7 +130,7 @@ def test_fetch_price_data_daily_already_today_falls_back_when_realtime_gone(monk
 
 def test_fetch_price_data_short_history_returns_none_change(monkeypatch):
     monkeypatch.setattr(
-        "capitalradar.agents.utils.core_stock_tools.get_stock_data",
+        "quantconclave.agents.utils.core_stock_tools.get_stock_data",
         _FakeInvoke("trade_date,close\n2026-08-25,23.80\n2026-08-24,23.50\n"))
     out = _fetch_price_data("600030.SH", {})
     assert out["today_change"] is None
@@ -164,7 +164,7 @@ def test_price_meta_from_none_is_empty():
 
 
 def test_compute_breakdown_carries_price_meta(monkeypatch):
-    import capitalradar.sector_scan.smart_money_score as sms
+    import quantconclave.sector_scan.smart_money_score as sms
     monkeypatch.setattr(sms, "detect_smart_money", lambda t, c: {
         "verdict": "confirmed",
         "score": 80,
@@ -180,7 +180,7 @@ def test_compute_breakdown_carries_price_meta(monkeypatch):
 
 
 def test_compute_breakdown_meta_missing_when_not_set(monkeypatch):
-    import capitalradar.sector_scan.smart_money_score as sms
+    import quantconclave.sector_scan.smart_money_score as sms
     monkeypatch.setattr(sms, "detect_smart_money", lambda t, c: {
         "verdict": "no_signal", "score": 20, "summary": "无信号",
         "dimensions": {},
@@ -210,7 +210,7 @@ def test_realtime_limited_result_displays_wan_not_shrunk():
 def test_fetch_realtime_flow_signal_mx_wan_to_yuan(monkeypatch):
     """MX 主力资金 metrics arrive in 万元 ("主力净流入": 65000.0); the MX branch
     must ×1e4 → 6.5e8 yuan so the yuan convention holds everywhere."""
-    import capitalradar.dataflows.mx_client as mx_client
+    import quantconclave.dataflows.mx_client as mx_client
     monkeypatch.setattr(mx_client, "query", lambda *a, **k: "text")
     monkeypatch.setattr(mx_client, "extract_snapshot_metrics", lambda d: {
         "超大单净流入": 42000.0,
@@ -238,7 +238,7 @@ def test_realtime_limited_result_all_zero_is_unavailable():
 
 
 def test_detect_all_zero_windows_unavailable(monkeypatch):
-    import capitalradar.sector_scan.smart_money_score as sms
+    import quantconclave.sector_scan.smart_money_score as sms
     zero_rows = [
         {"net_amount": 0, "buy_elg_amount": 0, "sell_elg_amount": 0,
          "buy_lg_amount": 0, "sell_lg_amount": 0, "date": f"2026-08-{i:02d}"}
@@ -252,7 +252,7 @@ def test_detect_all_zero_windows_unavailable(monkeypatch):
 
 
 def test_compute_breakdown_passthrough_data_unavailable(monkeypatch):
-    import capitalradar.sector_scan.smart_money_score as sms
+    import quantconclave.sector_scan.smart_money_score as sms
     monkeypatch.setattr(sms, "detect_smart_money", lambda t, c: {
         "verdict": "no_signal", "score": 0, "summary": "数据缺失",
         "dimensions": {}, "_data_unavailable": True,
@@ -276,10 +276,10 @@ def test_fetch_price_data_prefers_realtime_change_pct(monkeypatch):
     """Tencent quote carries its own authoritative 涨跌幅; today_change must
     come from that (2.28% → 0.0228), not recomputed from the price diff."""
     monkeypatch.setattr(
-        "capitalradar.agents.utils.core_stock_tools.get_stock_data",
+        "quantconclave.agents.utils.core_stock_tools.get_stock_data",
         _FakeInvoke(_CSV_STALE))
     monkeypatch.setattr(
-        "capitalradar.dataflows.interface.route_to_vendor",
+        "quantconclave.dataflows.interface.route_to_vendor",
         lambda method, symbol="": "**Current Price**: 24.35\n**Change**: +0.24 / 2.28%\n")
     out = _fetch_price_data("600030.SH", {})
     assert out["current"] == 24.35
@@ -301,11 +301,11 @@ def test_fetch_price_data_daily_today_falls_back_on_skip_vendor(monkeypatch):
         "2026-08-19,22.80\n"
     )
     monkeypatch.setattr(
-        "capitalradar.agents.utils.core_stock_tools.get_stock_data",
+        "quantconclave.agents.utils.core_stock_tools.get_stock_data",
         _FakeInvoke(csv_text))
     calls = []
     monkeypatch.setattr(
-        "capitalradar.dataflows.interface.route_to_vendor",
+        "quantconclave.dataflows.interface.route_to_vendor",
         lambda method, symbol="": calls.append(method) or "# SKIP_VENDOR: unreachable")
     out = _fetch_price_data("600030.SH", {})
     assert len(calls) == 1              # realtime now always attempted
@@ -319,7 +319,7 @@ def test_fetch_price_data_daily_today_falls_back_on_skip_vendor(monkeypatch):
 def test_fetch_flow_data_sorts_newest_first_to_chronological(monkeypatch):
     """tushare emits newest-first (trade_date DESC); _fetch_flow_data must
     normalize to chronological so rows[-5:] = the MOST RECENT 5 days."""
-    import capitalradar.agents.utils.capital_flow_tools as cft
+    import quantconclave.agents.utils.capital_flow_tools as cft
     newest_first = (
         "# Money Flow (主力资金流向) for 600030.SH\n"
         "# Source: 东方财富 via tushare\n\n"
@@ -352,7 +352,7 @@ def test_fetch_flow_data_sorts_newest_first_to_chronological(monkeypatch):
 # ---- F _validity 标注 ----
 
 def test_detect_validity_flow_too_small_flagged(monkeypatch):
-    import capitalradar.sector_scan.smart_money_score as sms
+    import quantconclave.sector_scan.smart_money_score as sms
     rows = [
         {"net_amount": 1e6, "buy_elg_amount": 6e5, "sell_elg_amount": 0,
          "buy_lg_amount": 4e5, "sell_lg_amount": 0, "date": f"2026-08-{i:02d}"}
@@ -372,7 +372,7 @@ def test_detect_validity_flow_too_small_flagged(monkeypatch):
 
 
 def test_detect_validity_ok_when_flow_large(monkeypatch):
-    import capitalradar.sector_scan.smart_money_score as sms
+    import quantconclave.sector_scan.smart_money_score as sms
     rows = [
         {"net_amount": 5e7, "buy_elg_amount": 3e7, "sell_elg_amount": 0,
          "buy_lg_amount": 2e7, "sell_lg_amount": 0, "date": f"2026-08-{i:02d}"}

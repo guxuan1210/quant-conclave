@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from capitalradar.sector_scan import reversal_metrics as rm
+from quantconclave.sector_scan import reversal_metrics as rm
 
 
 def _ohlcv_csv(n_rows: int, base: float = 10.0, step: float = 0.1) -> str:

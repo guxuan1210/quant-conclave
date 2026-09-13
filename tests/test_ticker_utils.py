@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from capitalradar.dataflows.ticker_utils import (
+from quantconclave.dataflows.ticker_utils import (
     is_cn_ticker,
     normalize_symbol,
     to_yfinance,
@@ -109,7 +109,7 @@ def test_to_code_bare():
 # ── integration: vendor bug fixes ──
 
 def test_akshare_accepts_ss_suffix():
-    from capitalradar.dataflows.akshare_data import (
+    from quantconclave.dataflows.akshare_data import (
         _is_cn_ticker as ak_is_cn, _ticker_to_ak_symbol,
     )
     assert ak_is_cn("600519.SS")
@@ -117,13 +117,13 @@ def test_akshare_accepts_ss_suffix():
 
 
 def test_tushare_accepts_ss_suffix():
-    from capitalradar.dataflows.tushare_data import _is_cn_ticker as ts_is_cn
+    from quantconclave.dataflows.tushare_data import _is_cn_ticker as ts_is_cn
     assert ts_is_cn("600519.SS")
 
 
 def test_chart_app_yfinance_converts_ss():
     """ohlcv._via_yfinance must feed yfinance the .SS form for A-shares."""
     import inspect
-    from capitalradar.dataflows import ohlcv
+    from quantconclave.dataflows import ohlcv
     src = inspect.getsource(ohlcv._via_yfinance)
     assert "to_yfinance" in src

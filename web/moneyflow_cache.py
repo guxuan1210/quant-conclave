@@ -201,7 +201,7 @@ def fetch_or_cache_moneyflow(
 
     if need_fetch:
         try:
-            from capitalradar.agents.utils.capital_flow_tools import get_money_flow
+            from quantconclave.agents.utils.capital_flow_tools import get_money_flow
             raw = str(get_money_flow.invoke({
                 "ticker": code,
                 "start_date": fetch_start,

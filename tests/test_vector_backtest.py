@@ -9,14 +9,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from capitalradar.backtest.engine import run_backtest
-from capitalradar.backtest.strategies import (
+from quantconclave.backtest.engine import run_backtest
+from quantconclave.backtest.strategies import (
     SIGNAL_MAP,
     get_strategy_class,
     is_builtin_template,
 )
-from capitalradar.backtest.metrics import _derive_trades
-from capitalradar.quant.backtest.vector import VectorBacktester
+from quantconclave.backtest.metrics import _derive_trades
+from quantconclave.quant.backtest.vector import VectorBacktester
 
 
 @pytest.fixture()

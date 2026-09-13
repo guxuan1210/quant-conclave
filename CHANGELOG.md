@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to CapitalRadar are documented here.
+All notable changes to QuantConclave are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -20,7 +20,7 @@ Breaking changes within the 0.x line are called out explicitly.
 - **Dual-region Qwen and GLM** with separate keys per region — international
   (`DASHSCOPE_API_KEY`, `ZHIPU_API_KEY`) and China (`DASHSCOPE_CN_API_KEY`,
   `ZHIPU_CN_API_KEY`), selectable via a secondary region prompt. (#758)
-- **`CAPITALRADAR_*` env-var configurability for `DEFAULT_CONFIG`.** Override
+- **`QUANTCONCLAVE_*` env-var configurability for `DEFAULT_CONFIG`.** Override
   `llm_provider`, deep/quick model IDs, `backend_url`, `output_language`,
   debate-round counts, checkpoint flag, and benchmark ticker via `.env` with
   type-aware coercion (string / int / bool). (#602)
@@ -65,7 +65,7 @@ Breaking changes within the 0.x line are called out explicitly.
 - **Ticker prompt preserves exchange suffixes** (`.SH`, `.SZ`, `.SS`, `.HK`,
   `.T`, etc.) for A-share, HK, Tokyo, and other non-US flows. (#770)
 - **Docker permission errors** no longer block first-run write to
-  `~/.capitalradar/`. (#519, #627, #672, #771)
+  `~/.quantconclave/`. (#519, #627, #672, #771)
 - **Config state no longer leaks between runs** when sub-dicts are mutated;
   `set_config` partial updates preserve sibling defaults. (#788)
 - **`max_recur_limit` config actually applies** — previously read but not
@@ -95,11 +95,11 @@ Breaking changes within the 0.x line are called out explicitly.
 - **LangGraph checkpoint resume** — opt-in via `--checkpoint`. State is saved
   after each node so crashed or interrupted runs resume from the last
   successful step. Per-ticker SQLite databases under
-  `~/.capitalradar/cache/checkpoints/`. `--clear-checkpoints` resets them. (#594)
+  `~/.quantconclave/cache/checkpoints/`. `--clear-checkpoints` resets them. (#594)
 - **Persistent decision log** replacing the per-agent BM25 memory. Decisions
   are stored automatically at the end of `propagate()`; the next same-ticker
   run resolves prior pending entries with realised return, alpha vs SPY, and
-  a one-paragraph reflection. Override path with `CAPITALRADAR_MEMORY_LOG_PATH`.
+  a one-paragraph reflection. Override path with `QUANTCONCLAVE_MEMORY_LOG_PATH`.
   Optional `memory_log_max_entries` config caps resolved entries; pending
   entries are never pruned. (#578, #563, #564, #579)
 - **DeepSeek, Qwen (Alibaba DashScope), GLM (Zhipu), and Azure OpenAI**
@@ -124,7 +124,7 @@ Breaking changes within the 0.x line are called out explicitly.
   overriding `backend_url`. The CLI flow is unaffected.
 - All file I/O passes explicit `encoding="utf-8"` so Windows users no longer
   hit `UnicodeEncodeError` with the cp1252 default. (#543, #550, #576)
-- Cache and log directories moved to `~/.capitalradar/` to resolve Docker
+- Cache and log directories moved to `~/.quantconclave/` to resolve Docker
   permission issues. (#519)
 - `SignalProcessor` reads the rating from the Portfolio Manager's rendered
   markdown via a deterministic heuristic — no extra LLM call.
@@ -326,7 +326,7 @@ PRs from late 2025 also landed here.
 
 ### Added
 
-- **Initial public release** of the CapitalRadar multi-agent trading
+- **Initial public release** of the QuantConclave multi-agent trading
   framework: market / sentiment / news / fundamentals analysts; bull and bear
   researchers; trader; aggressive, conservative, and neutral risk debaters;
   portfolio manager. LangGraph orchestration, yfinance data, per-agent

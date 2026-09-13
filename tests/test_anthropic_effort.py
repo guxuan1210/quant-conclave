@@ -8,7 +8,7 @@ inherit support automatically.
 
 import pytest
 
-from capitalradar.llm_clients import anthropic_client as mod
+from quantconclave.llm_clients import anthropic_client as mod
 
 
 def _capture_kwargs(monkeypatch):

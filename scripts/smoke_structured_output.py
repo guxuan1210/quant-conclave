@@ -24,11 +24,11 @@ import argparse
 import os
 import sys
 
-from capitalradar.agents.managers.portfolio_manager import create_portfolio_manager
-from capitalradar.agents.managers.research_manager import create_research_manager
-from capitalradar.agents.trader.trader import create_trader
-from capitalradar.graph.signal_processing import SignalProcessor
-from capitalradar.llm_clients import create_llm_client
+from quantconclave.agents.managers.portfolio_manager import create_portfolio_manager
+from quantconclave.agents.managers.research_manager import create_research_manager
+from quantconclave.agents.trader.trader import create_trader
+from quantconclave.graph.signal_processing import SignalProcessor
+from quantconclave.llm_clients import create_llm_client
 
 
 PROVIDER_DEFAULTS = {

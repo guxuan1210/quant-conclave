@@ -19,7 +19,7 @@ _cal: dict[str, set[str]] = {"asof": "", "open_days": set()}
 def _fetch_open_days() -> set[str]:
     """Fetch the set of open SSE trading days (YYYYMMDD) from tushare."""
     try:
-        from capitalradar.dataflows.tushare_data import _get_pro
+        from quantconclave.dataflows.tushare_data import _get_pro
         pro = _get_pro()
         today = datetime.now().strftime("%Y%m%d")
         cal = pro.trade_cal(exchange="SSE", start_date="20200101", end_date=today)

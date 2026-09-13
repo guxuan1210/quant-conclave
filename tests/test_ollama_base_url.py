@@ -11,7 +11,7 @@ import pytest
 
 
 def _reload_client():
-    import capitalradar.llm_clients.openai_client as mod
+    import quantconclave.llm_clients.openai_client as mod
     return importlib.reload(mod)
 
 
@@ -200,7 +200,7 @@ def test_caller_extra_body_is_merged_not_clobbered(monkeypatch):
 
 def test_ollama_model_labels_no_local_suffix():
     """Labels should no longer claim '(local)' since the endpoint is dynamic."""
-    from capitalradar.llm_clients.model_catalog import get_model_options
+    from quantconclave.llm_clients.model_catalog import get_model_options
     for mode in ("quick", "deep"):
         labels = [label for label, _ in get_model_options("ollama", mode)]
         assert all("local" not in label for label in labels), labels
@@ -208,7 +208,7 @@ def test_ollama_model_labels_no_local_suffix():
 
 def test_ollama_offers_custom_model_id():
     """Ollama users with custom-pulled models can pick 'Custom model ID'."""
-    from capitalradar.llm_clients.model_catalog import get_model_options
+    from quantconclave.llm_clients.model_catalog import get_model_options
     for mode in ("quick", "deep"):
         entries = get_model_options("ollama", mode)
         values = [v for _, v in entries]

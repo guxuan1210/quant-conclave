@@ -1,7 +1,7 @@
 """History-based Portfolio Manager chat with full data tool access.
 
 Provides the SSE generator and PM agent factory for multi-turn conversations
-about past CapitalRadar analyses. The PM agent is bound with all dataflows
+about past QuantConclave analyses. The PM agent is bound with all dataflows
 tools and receives the full analysis context from stored JSON.
 """
 
@@ -36,10 +36,10 @@ def _extract_tickers(text_str: str) -> list[str]:
 # the vendor chain: Tencent `**Change**: -0.06 / 2.28%` (涨跌额 / 涨跌幅) and
 # akshare/xueqiu `Change: +0.5%`. The 涨跌幅 is the LAST %-terminated number on
 # the Change line.
-# The regexes live in capitalradar/dataflows/quote_text.py so smart_money_score
+# The regexes live in quantconclave/dataflows/quote_text.py so smart_money_score
 # and history_chat share one canonical parse (the same quote text feeds both).
-from capitalradar.dataflows.quote_text import parse_quote_change_pct as _parse_quote_change_pct
-from capitalradar.dataflows.quote_text import parse_quote_price as _parse_quote_price
+from quantconclave.dataflows.quote_text import parse_quote_change_pct as _parse_quote_change_pct
+from quantconclave.dataflows.quote_text import parse_quote_price as _parse_quote_price
 
 
 def _verify_advisor_facts(final_text: str, config: dict) -> str:
@@ -70,7 +70,7 @@ def _verify_advisor_facts(final_text: str, config: dict) -> str:
         return ""
 
     from concurrent.futures import ThreadPoolExecutor
-    from capitalradar.dataflows.interface import route_to_vendor
+    from quantconclave.dataflows.interface import route_to_vendor
 
     def _one(code: str):
         try:
@@ -108,10 +108,10 @@ def build_pm_system_prompt(states: list[dict], config: dict, lang: str = "Englis
     if not states:
         today = datetime.now()
         return (
-            f"You are the **CapitalRadar Advisor**, an AI investment consultant powered by CapitalRadar's multi-agent analysis framework.\n\n"
+            f"You are the **QuantConclave Advisor**, an AI investment consultant powered by QuantConclave's multi-agent analysis framework.\n\n"
             f"**Current date**: {today.strftime('%Y-%m-%d')} (weekday: {today.strftime('%A')})\n\n"
-            f"## Core Capability: CapitalRadar Deep Analysis\n\n"
-            f"CapitalRadar runs a 7-analyst team to produce comprehensive stock analysis:\n"
+            f"## Core Capability: QuantConclave Deep Analysis\n\n"
+            f"QuantConclave runs a 7-analyst team to produce comprehensive stock analysis:\n"
             f"- **Capital Flow Analyst** (core anchor) - detects institutional money movement\n"
             f"- **Market Analyst** - technical indicators and price action\n"
             f"- **Sentiment Analyst** - social media and retail sentiment\n"
@@ -168,7 +168,7 @@ def build_pm_system_prompt(states: list[dict], config: dict, lang: str = "Englis
     max_decision_chars = 3000 if n > 1 else 5000
 
     prompt = (
-        f"You are the **CapitalRadar Advisor**, the central AI investment consulting intelligence. "
+        f"You are the **QuantConclave Advisor**, the central AI investment consulting intelligence. "
         f"You evolved from the Portfolio Manager role into a proactive advisory agent.\n\n"
         f"## Your Process\n\n"
         f"When asked about a stock:\n"
@@ -203,7 +203,7 @@ def build_pm_system_prompt(states: list[dict], config: dict, lang: str = "Englis
         if final:
             prompt += f"### Final Decision\n{str(final)[:max_decision_chars]}\n\n"
 
-        from capitalradar.catalog import ordered_roles
+        from quantconclave.catalog import ordered_roles
         report_keys = [(role.report_key, role.label) for role in ordered_roles()]
         for key, label in report_keys:
             report = state.get(key, "")
@@ -247,7 +247,7 @@ def build_pm_system_prompt(states: list[dict], config: dict, lang: str = "Englis
         f"- Write in {lang}.\n"
     )
     # Append verified experiences from the library
-    from capitalradar.advisory.experience_store import get_active_experiences, log_injection
+    from quantconclave.advisory.experience_store import get_active_experiences, log_injection
     try:
         active_exp = get_active_experiences()
         if active_exp:
@@ -271,24 +271,24 @@ def build_tool_set(config: dict, llm=None):
     from langchain_core.tools import tool
     from typing import Annotated
     from web.results_store import search_analyses as _search_analyses, load_full_state
-    from capitalradar.agents.utils.core_stock_tools import get_stock_data
+    from quantconclave.agents.utils.core_stock_tools import get_stock_data
 
     # Pre-bind config so inner tools don't rely on closure (LangChain may
     # serialize tools, losing the closure context).
     _search = partial(_search_analyses, config)
     _load_state = partial(load_full_state, config)
-    from capitalradar.agents.utils.technical_indicators_tools import get_indicators
-    from capitalradar.agents.utils.fundamental_data_tools import (
+    from quantconclave.agents.utils.technical_indicators_tools import get_indicators
+    from quantconclave.agents.utils.fundamental_data_tools import (
         get_fundamentals, get_balance_sheet, get_cashflow, get_income_statement,
     )
-    from capitalradar.agents.utils.news_data_tools import (
+    from quantconclave.agents.utils.news_data_tools import (
         get_news, get_insider_transactions, get_global_news,
     )
-    from capitalradar.agents.utils.capital_flow_tools import (
+    from quantconclave.agents.utils.capital_flow_tools import (
         get_money_flow, get_hsgt_flow, get_market_flow, get_margin_trading,
         get_institutional_holders, get_major_holders, get_analyst_recommendations,
     )
-    from capitalradar.agents.utils.intraday_tools import (
+    from quantconclave.agents.utils.intraday_tools import (
         get_intraday_data, get_realtime_quote,
     )
 
@@ -296,7 +296,7 @@ def build_tool_set(config: dict, llm=None):
     def query_past_analyses(
         ticker: Annotated[str, "Stock ticker code (e.g. 600519, 000858, AAPL). Suffixes like .SH/.SZ are auto-normalized."],
     ) -> str:
-        """Query past CapitalRadar analysis runs for a specific stock ticker.
+        """Query past QuantConclave analysis runs for a specific stock ticker.
         Returns summary of all past analyses including dates, ratings, and available reports.
         Use this FIRST before suggesting any analysis to the user.
         Ticker suffixes (.SH/.SZ) are automatically handled — just pass whatever the user provides."""
@@ -382,7 +382,7 @@ def build_tool_set(config: dict, llm=None):
         analysis_date: Annotated[str, "Analysis date YYYY-MM-DD (default: today)"] = "",
         language: Annotated[str, "Output language: Chinese or English"] = "Chinese",
     ) -> str:
-        """Run a FULL CapitalRadar deep analysis pipeline for the given stock.
+        """Run a FULL QuantConclave deep analysis pipeline for the given stock.
 
         This is NOT a quick assessment — it runs all 7 analysts (Capital Flow,
         Market, Sentiment, News, Fundamentals, Competitor, Partner), followed
@@ -397,8 +397,8 @@ def build_tool_set(config: dict, llm=None):
         if not analysis_date:
             analysis_date = datetime.now().strftime("%Y-%m-%d")
 
-        from capitalradar.graph.trading_graph import CapitalRadarGraph
-        graph = CapitalRadarGraph(
+        from quantconclave.graph.trading_graph import QuantConclaveGraph
+        graph = QuantConclaveGraph(
             ["capital_flow", "market", "social", "news", "fundamentals", "competitor", "partner"],
             config=config,
             debug=False,
@@ -470,7 +470,7 @@ def build_tool_set(config: dict, llm=None):
         Weighted composite. ≥70=主力确认, 50-69=有主力, 30-49=信号弱, <30=无主力.
         SCREENING HINT: Use run_smart_screening for batch screening.
         """
-        from capitalradar.sector_scan.smart_money_score import (
+        from quantconclave.sector_scan.smart_money_score import (
             compute_smart_money_score, format_sms_unavailable,
         )
         total, breakdown = compute_smart_money_score(ticker, config)
@@ -534,14 +534,14 @@ def build_tool_set(config: dict, llm=None):
 
         ALL strategies automatically include smart_money_score >= 50 baseline.
         """
-        from capitalradar.sector_scan.dynamic_strategy import (
+        from quantconclave.sector_scan.dynamic_strategy import (
             build_strategy_prompt, parse_strategy_json, validate_strategy,
             execute_strategy, describe_strategy, STRATEGY_FIELDS,
         )
-        from capitalradar.sector_scan.rotation import get_rrg_data
-        from capitalradar.sector_scan.smart_scanner import get_industry_stocks, _score_one_stock
-        from capitalradar.sector_scan.smart_money_score import compute_smart_money_score
-        from capitalradar.sector_scan.pick_tracker import record_pick
+        from quantconclave.sector_scan.rotation import get_rrg_data
+        from quantconclave.sector_scan.smart_scanner import get_industry_stocks, _score_one_stock
+        from quantconclave.sector_scan.smart_money_score import compute_smart_money_score
+        from quantconclave.sector_scan.pick_tracker import record_pick
         from datetime import datetime
 
         # ── Phase 1: Generate strategy ──
@@ -598,7 +598,7 @@ def build_tool_set(config: dict, llm=None):
                 }
                 # Add money flow data (tushare enhanced)
                 try:
-                    from capitalradar.dataflows.eastmoney_sector import get_stock_moneyflow
+                    from quantconclave.dataflows.eastmoney_sector import get_stock_moneyflow
                     mf = get_stock_moneyflow(code, days=5)
                     # get_stock_moneyflow returns 万元 (raw tushare scale). net_5d is
                     # the 5-day 主力(超大+大单) net in 万元 — the field STRATEGY_FIELDS
@@ -667,7 +667,7 @@ def build_tool_set(config: dict, llm=None):
     ) -> str:
         """Check how past stock picks have performed. Returns win rate, average returns,
         and a list of recent picks with their outcomes."""
-        from capitalradar.sector_scan.pick_tracker import get_performance_report
+        from quantconclave.sector_scan.pick_tracker import get_performance_report
         from web.results_store import resolve_picks
         resolve_picks(config)
         return get_performance_report(config, days)
@@ -683,7 +683,7 @@ def build_tool_set(config: dict, llm=None):
         institutional behavior phase classification, and actionable guidance.
         If models are not yet trained, the behavior analysis still works.
         """
-        from capitalradar.prediction import PredictionAgent
+        from quantconclave.prediction import PredictionAgent
         today = datetime.now().strftime("%Y-%m-%d")
         try:
             agent = PredictionAgent()
@@ -719,7 +719,7 @@ def build_tool_set(config: dict, llm=None):
         two-pass records exist before deep-diving into one. Pass tab="emwl"
         or tab="idx" to filter by source."""
         from web.twopass_records import list_twopass_records
-        from capitalradar.dataflows.config import get_config
+        from quantconclave.dataflows.config import get_config
         try:
             recs = list_twopass_records(get_config())
         except Exception as e:
@@ -749,7 +749,7 @@ def build_tool_set(config: dict, llm=None):
         stock's LLM analysis conclusion text. Use this to perform deeper
         analysis on the bullish candidates and pick final recommendations."""
         from web.twopass_records import get_twopass_record
-        from capitalradar.dataflows.config import get_config
+        from quantconclave.dataflows.config import get_config
         try:
             rec = get_twopass_record(get_config(), record_id)
         except Exception as e:
@@ -805,7 +805,7 @@ def build_tool_set(config: dict, llm=None):
         万元, per-window deviation ratio vs the configured threshold, and a verdict
         (一致 / 偏差 / 数据缺失). Use when the Smart Money Score or its underlying
         flow data looks suspicious, or before relying on a low/high SMS figure."""
-        from capitalradar.sector_scan.moneyflow_verifier import (
+        from quantconclave.sector_scan.moneyflow_verifier import (
             verify_moneyflow as _verify, _render_verify_moneyflow,
         )
         try:
@@ -827,7 +827,7 @@ def build_tool_set(config: dict, llm=None):
         get_money_flow 只有单日/五日近似, 要看主力中长期态度时必须用它。
         数据来源 tushare moneyflow (万元原生), 直接 tushare 拉取、不经过本地缓存。"""
         from web.ticker_utils import normalize_ticker
-        from capitalradar.dataflows.eastmoney_sector import (
+        from quantconclave.dataflows.eastmoney_sector import (
             get_moneyflow_multi_horizon as _mh,
             format_moneyflow_multi_horizon,
         )
@@ -869,8 +869,8 @@ def build_tool_set(config: dict, llm=None):
     if get_hrp: result.append(get_hrp)
     if get_rvp: result.append(get_rvp)
     # Add strategy library tools
-    from capitalradar.strategy.manager import search_strategies
-    from capitalradar.advisory.calibration_tool import run_calibration
+    from quantconclave.strategy.manager import search_strategies
+    from quantconclave.advisory.calibration_tool import run_calibration
     @tool
     def list_strategies(query: str = "") -> str:
         """Search saved strategies from the strategy library."""
@@ -892,7 +892,7 @@ def build_tool_set(config: dict, llm=None):
         if len(ids) < 2:
             return "Need at least 2 run IDs to compare. Usage: compare_backtests(\"1,2,3\")"
         results_list = []
-        from capitalradar.workspace.store import get_connection, get_config
+        from quantconclave.workspace.store import get_connection, get_config
         conn = get_connection(get_config())
         try:
             for rid in ids:
@@ -916,7 +916,7 @@ def build_tool_set(config: dict, llm=None):
     def evaluate_past_recommendations(
         ticker: str,
     ) -> str:
-        """Evaluate past CapitalRadar analysis recommendations against current prices.
+        """Evaluate past QuantConclave analysis recommendations against current prices.
         Shows what was recommended, price at analysis time, current price, and actual return."""
         import yfinance as yf
         from datetime import datetime
@@ -970,7 +970,7 @@ def build_tool_set(config: dict, llm=None):
     ) -> str:
         """List all pending_review experiences with their IDs, categories, and abstracts.
         Use this to show the user what experiences are awaiting approval."""
-        from capitalradar.advisory.experience_store import list_experiences
+        from quantconclave.advisory.experience_store import list_experiences
         try:
             pending = list_experiences(status="pending_review")
             if not pending:
@@ -998,7 +998,7 @@ def build_tool_set(config: dict, llm=None):
     ) -> str:
         """Approve one or more pending experiences by ID. Changes status to 'active'.
         ids: comma-separated list of experience IDs (e.g. '4,5,6')"""
-        from capitalradar.advisory.experience_store import approve_experience
+        from quantconclave.advisory.experience_store import approve_experience
         id_list = [int(x.strip()) for x in ids.split(",") if x.strip().isdigit()]
         if not id_list:
             return "No valid IDs provided."
@@ -1015,7 +1015,7 @@ def build_tool_set(config: dict, llm=None):
     ) -> str:
         """Reject (archive) one or more pending experiences by ID.
         ids: comma-separated list of experience IDs (e.g. '4,5,6')"""
-        from capitalradar.advisory.experience_store import archive_experience
+        from quantconclave.advisory.experience_store import archive_experience
         id_list = [int(x.strip()) for x in ids.split(",") if x.strip().isdigit()]
         if not id_list:
             return "No valid IDs provided."
@@ -1028,10 +1028,10 @@ def build_tool_set(config: dict, llm=None):
 
     @tool
     def generate_analyst_skill() -> str:
-        """Generate a new version of the CapitalRadar Analyst skill from
+        """Generate a new version of the QuantConclave Analyst skill from
         all currently active (approved) experiences. Call this AFTER the user
         has reviewed and approved experiences. Returns version info."""
-        from capitalradar.graph.skill_generator import generate_skill_version
+        from quantconclave.graph.skill_generator import generate_skill_version
         try:
             result = generate_skill_version({})
             return (
@@ -1073,7 +1073,7 @@ def create_history_pm_agent(run_ids: list[str], config: dict, lang: Optional[str
         the tool list for manual execution, the system prompt string, and
         the primary analysis metadata dict.
     """
-    from capitalradar.llm_clients import create_llm_client, resolve_role_llm
+    from quantconclave.llm_clients import create_llm_client, resolve_role_llm
 
     # Advisory mode: no run_ids, use fallback prompt
     advisory_mode = not run_ids

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from capitalradar.workspace import store
+from quantconclave.workspace import store
 
 
 def _create_legacy(db_path, table, columns, rows):

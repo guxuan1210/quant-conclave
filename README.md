@@ -1,4 +1,4 @@
-﻿# 🛡️ CapitalRadar — AI 多智能体主力资金雷达
+﻿# 🛡️ QuantConclave — AI 多智能体主力资金雷达
 
 > **打破 A 股信息不对称：8 位 AI 智能体协同工作，追踪主力资金真实动向，并形成持续进化的分析闭环。**
 >
@@ -6,11 +6,11 @@
 
 ---
 
-## 为什么需要 CapitalRadar？
+## 为什么需要 QuantConclave？
 
 A 股市场最大的矛盾是 **信息不对称**：机构掌握资金、数据、研究团队；散户看 K 线、听消息、凭感觉。
 
-CapitalRadar 用 **8 个 AI 智能体** 组成分析流水线，从资金流向、技术面、情绪、新闻、基本面、预测等维度独立研判，再通过多空辩论、风险辩论和组合经理综合决策，输出可验证的买卖建议。**每次分析的结果会被自动回测验证，经验被萃取存入经验库，经过你的审核后注入未来的分析，形成持续进化的学习闭环。**
+QuantConclave 用 **8 个 AI 智能体** 组成分析流水线，从资金流向、技术面、情绪、新闻、基本面、预测等维度独立研判，再通过多空辩论、风险辩论和组合经理综合决策，输出可验证的买卖建议。**每次分析的结果会被自动回测验证，经验被萃取存入经验库，经过你的审核后注入未来的分析，形成持续进化的学习闭环。**
 
 ---
 
@@ -53,7 +53,7 @@ CapitalRadar 用 **8 个 AI 智能体** 组成分析流水线，从资金流向�
 
 ## 学习闭环：系统如何自动进化
 
-这是 CapitalRadar 区别于普通分析工具的核心能力：
+这是 QuantConclave 区别于普通分析工具的核心能力：
 
 ```
 每次深度分析完成
@@ -179,8 +179,8 @@ yfinance / akshare (兜底)
 
 ```bash
 # 1. 克隆
-git clone https://github.com/sebayuhui/Capitalradar.git
-cd Capitalradar
+git clone https://github.com/guxuan1210/quant-conclave.git
+cd quant-conclave
 
 # 2. 安装依赖（推荐 uv 或 pip）
 uv pip install -e .
@@ -205,29 +205,29 @@ python run_web.py
 
 ```python
 # 完整深度分析
-from capitalradar.graph.trading_graph import CapitalRadarGraph
-from capitalradar.default_config import DEFAULT_CONFIG
+from quantconclave.graph.trading_graph import QuantConclaveGraph
+from quantconclave.default_config import DEFAULT_CONFIG
 
 config = DEFAULT_CONFIG.copy()
 config["llm_provider"] = "deepseek"
 config["deep_think_llm"] = "deepseek-v4-flash"
 
-ta = CapitalRadarGraph(debug=True, config=config)
+ta = QuantConclaveGraph(debug=True, config=config)
 _, decision = ta.propagate("600519.SH", "2026-06-30")
 print(decision)
 
 # 资金流数据
-from capitalradar.dataflows.eastmoney_sector import get_stock_moneyflow
+from quantconclave.dataflows.eastmoney_sector import get_stock_moneyflow
 mf = get_stock_moneyflow("600519.SH", days=5)
 print(mf["main_force_net"], mf["mf_ratio"], mf["trend"])
 
 # AI 选股
-from capitalradar.sector_scan.smart_scanner import run_smart_scan
+from quantconclave.sector_scan.smart_scanner import run_smart_scan
 result = run_smart_scan(["半导体", "软件开发"], top_n=5)
 print(result)
 
 # 经验萃取（校准循环）
-from capitalradar.graph.loop_coordinator import run_full_loop
+from quantconclave.graph.loop_coordinator import run_full_loop
 summary = run_full_loop(DEFAULT_CONFIG, trigger="manual")
 print(summary)
 ```
@@ -248,15 +248,15 @@ print(summary)
 DeepSeek / OpenAI / Anthropic / Google / xAI / DashScope / 智谱 GLM / MiniMax / Ollama / OpenRouter
 
 运行时覆盖（环境变量）：
-`CAPITALRADAR_LLM_PROVIDER`、`CAPITALRADAR_DEEP_THINK_LLM`、`CAPITALRADAR_QUICK_THINK_LLM` 等可覆盖 `default_config.py`。
+`QUANTCONCLAVE_LLM_PROVIDER`、`QUANTCONCLAVE_DEEP_THINK_LLM`、`QUANTCONCLAVE_QUICK_THINK_LLM` 等可覆盖 `default_config.py`。
 
 ---
 
 ## 项目结构
 
 ```
-CapitalRadar/
-├── capitalradar/
+QuantConclave/
+├── quantconclave/
 │   ├── agents/                   # AI 分析师智能体
 │   │   ├── analysts/             #   7 位分析师（资金流/市场/情绪/新闻/基本面...）
 │   │   ├── managers/             #   Research Manager + Portfolio Manager
@@ -338,7 +338,7 @@ CapitalRadar/
 | Ollama | — | 本地部署 |
 | OpenRouter | `OPENROUTER_API_KEY` | 统一多模型接口 |
 
-运行时 LLM 模型通过环境变量 `CAPITALRADAR_DEEP_THINK_LLM` / `CAPITALRADAR_QUICK_THINK_LLM` 切换，无需改代码。
+运行时 LLM 模型通过环境变量 `QUANTCONCLAVE_DEEP_THINK_LLM` / `QUANTCONCLAVE_QUICK_THINK_LLM` 切换，无需改代码。
 
 ---
 
@@ -378,7 +378,7 @@ CapitalRadar/
 
 ## 免责声明
 
-CapitalRadar 仅供研究和教育目的。AI 生成的分析结果不构成任何投资、交易或财务建议。投资有风险，入市需谨慎。
+QuantConclave 仅供研究和教育目的。AI 生成的分析结果不构成任何投资、交易或财务建议。投资有风险，入市需谨慎。
 
 ---
 

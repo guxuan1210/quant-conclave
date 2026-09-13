@@ -193,8 +193,8 @@ def test_fetch_close_on_date_uses_vendor_chain(monkeypatch):
     })
     # The function imports parse_ohlcv_csv / route_to_vendor lazily inside itself,
     # so patch at their defining modules.
-    monkeypatch.setattr("capitalradar.backtest.data.parse_ohlcv_csv", lambda raw: fake_df)
-    monkeypatch.setattr("capitalradar.dataflows.interface.route_to_vendor", lambda *a, **k: "fake-csv")
+    monkeypatch.setattr("quantconclave.backtest.data.parse_ohlcv_csv", lambda raw: fake_df)
+    monkeypatch.setattr("quantconclave.dataflows.interface.route_to_vendor", lambda *a, **k: "fake-csv")
 
     from web.watchlist_store import _fetch_close_on_date
     # On a trading day → that day's close
@@ -254,7 +254,7 @@ def test_save_watchlist_analysis_setup_type_defaults_to_neutral(config):
 
 def test_render_watchlist_analysis_setup_type():
     """render_watchlist_analysis emits the 命中路径 line under the verdict line."""
-    from capitalradar.agents.schemas import (
+    from quantconclave.agents.schemas import (
         WatchlistAnalysis, WatchlistSetupType, render_watchlist_analysis,
     )
     wa = WatchlistAnalysis(
@@ -274,7 +274,7 @@ def test_render_watchlist_analysis_setup_type():
 
 def test_render_watchlist_analysis_neutral_residual():
     """观望 verdict pairs with the 观望-无明确路径 residual setup_type."""
-    from capitalradar.agents.schemas import (
+    from quantconclave.agents.schemas import (
         WatchlistAnalysis, WatchlistSetupType, render_watchlist_analysis,
     )
     wa = WatchlistAnalysis(

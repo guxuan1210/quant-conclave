@@ -1,5 +1,5 @@
 ﻿# reload trigger v2
-"""FastAPI application for the CapitalRadar web dashboard."""
+"""FastAPI application for the QuantConclave web dashboard."""
 
 from __future__ import annotations
 
@@ -23,8 +23,8 @@ from pydantic import BaseModel
 import yfinance as yf
 import requests as req
 
-from capitalradar.default_config import DEFAULT_CONFIG
-from capitalradar.llm_clients.model_catalog import MODEL_OPTIONS
+from quantconclave.default_config import DEFAULT_CONFIG
+from quantconclave.llm_clients.model_catalog import MODEL_OPTIONS
 from web.stream import StreamEmitter, _pending_interactions, _user_responses, _pending_chats, _chat_questions, _session_results
 from web.results_store import init_db, get_result
 from web.history_chat import stream_history_chat
@@ -58,7 +58,7 @@ async def lifespan(app_ref: FastAPI):
     global _scheduler_manager
     _load_env()
     init_db(DEFAULT_CONFIG)
-    from capitalradar.workspace.store import migrate_legacy_db
+    from quantconclave.workspace.store import migrate_legacy_db
     migrate_legacy_db(DEFAULT_CONFIG)
     from web.results_store import init_shortlist
     init_shortlist(DEFAULT_CONFIG)
@@ -99,7 +99,7 @@ async def lifespan(app_ref: FastAPI):
         _scheduler_manager.shutdown()
 
 
-app = FastAPI(title="CapitalRadar Dashboard", lifespan=lifespan)
+app = FastAPI(title="QuantConclave Dashboard", lifespan=lifespan)
 app.include_router(experience_router)
 app.include_router(calibration_router)
 app.include_router(history_agent_router)
@@ -265,7 +265,7 @@ def get_config():
 @app.get("/api/runtime")
 def get_runtime():
     """Expose the Runtime Manifest (ports / service URLs) for diagnostics."""
-    from capitalradar.runtime_manifest import as_dict
+    from quantconclave.runtime_manifest import as_dict
     return as_dict()
 
 
@@ -402,7 +402,7 @@ def _fetch_ollama4_models() -> list[str]:
 def pick_rankings():
     """Return top gainers, top net inflow, and multi-factor rankings for Pick Agent."""
     try:
-        from capitalradar.sector_scan.top_gainers import get_top_gainers, get_top_net_inflow, get_multi_factor_ranking
+        from quantconclave.sector_scan.top_gainers import get_top_gainers, get_top_net_inflow, get_multi_factor_ranking
         import concurrent.futures
 
         # Try Tushare first, fall back to yfinance
@@ -499,7 +499,7 @@ def _format_ranking(results) -> list[dict]:
     return formatted
 
 
-from capitalradar.dataflows.ohlcv import fetch_ohlcv as _fetch_ohlcv
+from quantconclave.dataflows.ohlcv import fetch_ohlcv as _fetch_ohlcv
 
 
 @app.get("/api/history")
@@ -1077,7 +1077,7 @@ def download_chat_thread_new(thread_id: str, format: str = Query(default="md")):
         )
 
     # Build MD content (reused for MD, PDF, DOCX)
-    lines = [f"# CapitalRadar Chat - {ticker} ({date})"]
+    lines = [f"# QuantConclave Chat - {ticker} ({date})"]
     if len(run_ids) > 1:
         lines.append(f"*Multi-analysis thread covering {len(run_ids)} runs*")
     lines.append("")
@@ -1262,17 +1262,17 @@ def download_report(session_id: str, format: str = Query(default="md")):
         from web.chat_pdf import generate_chat_pdf
         pdf_bytes = generate_chat_pdf(md)
         return Response(content=pdf_bytes, media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename=CapitalRadar_{safe_ticker}_{safe_date}.pdf"})
+            headers={"Content-Disposition": f"attachment; filename=QuantConclave_{safe_ticker}_{safe_date}.pdf"})
 
     if format == "docx":
         from web.docx_export import generate_docx
         docx_bytes = generate_docx(session_id, _session_results)
-        filename = f"CapitalRadar_{safe_ticker}_{safe_date}.docx"
+        filename = f"QuantConclave_{safe_ticker}_{safe_date}.docx"
         return Response(content=docx_bytes,
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
-    filename = f"CapitalRadar_{safe_ticker}_{safe_date}.md"
+    filename = f"QuantConclave_{safe_ticker}_{safe_date}.md"
     return Response(content=md, media_type="text/markdown; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
@@ -1294,8 +1294,8 @@ def download_result_file(run_id: str, format: str = Query(default="md")):
     if results_dir:
         base_dir = Path(results_dir)
     else:
-        base_dir = Path.home() / ".capitalradar" / "logs"
-    base = base_dir / f"{ticker.upper()}/CapitalRadarStrategy_logs"
+        base_dir = Path.home() / ".quantconclave" / "logs"
+    base = base_dir / f"{ticker.upper()}/QuantConclaveStrategy_logs"
     json_path = base / f"full_states_log_{date}.json"
     md_path = base / f"full_report_{date}.md"
 
@@ -1303,7 +1303,7 @@ def download_result_file(run_id: str, format: str = Query(default="md")):
         if not json_path.exists():
             raise HTTPException(404, "JSON file not found")
         return FileResponse(str(json_path), media_type="application/json",
-                            filename=f"CapitalRadar_{safe_ticker}_{date}.json")
+                            filename=f"QuantConclave_{safe_ticker}_{date}.json")
 
     # Build MD content — use existing report file or generate from JSON
     if md_path.exists():
@@ -1319,17 +1319,17 @@ def download_result_file(run_id: str, format: str = Query(default="md")):
         from web.chat_pdf import generate_chat_pdf
         pdf_bytes = generate_chat_pdf(md_content)
         return Response(content=pdf_bytes, media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename=CapitalRadar_{safe_ticker}_{date}.pdf"})
+            headers={"Content-Disposition": f"attachment; filename=QuantConclave_{safe_ticker}_{date}.pdf"})
 
     # Default: MD
     return Response(content=md_content, media_type="text/markdown; charset=utf-8",
-                    headers={"Content-Disposition": f"attachment; filename=CapitalRadar_{safe_ticker}_{date}.md"})
+                    headers={"Content-Disposition": f"attachment; filename=QuantConclave_{safe_ticker}_{date}.md"})
 
 
 def _state_to_markdown(state: dict, ticker: str, date: str) -> str:
     """Build a markdown report from a stored analysis state dict."""
-    lines = [f"# CapitalRadar Analysis: {ticker} ({date})", "", "---", ""]
-    from capitalradar.catalog import ordered_roles
+    lines = [f"# QuantConclave Analysis: {ticker} ({date})", "", "---", ""]
+    from quantconclave.catalog import ordered_roles
     reports = [(role.report_key, role.label) for role in ordered_roles()]
     for key, label in reports:
         text = state.get(key, "")
@@ -1905,7 +1905,7 @@ def test_scheduler_webhook(body: WebhookTestPayload):
     from web.wecom_push import push_wecom
     content = (
         f"# ✅ 微信推送测试\n\n"
-        f"**来自**: {body.name or 'CapitalRadar'}\n\n"
+        f"**来自**: {body.name or 'QuantConclave'}\n\n"
         "如果你在微信里看到这条消息，说明定时任务的微信推送已配置成功。"
     )
     return push_wecom(body.webhook_url, content)
@@ -1928,7 +1928,7 @@ def test_scheduler_bot(body: BotTestPayload):
     wecom_bot.ensure_started(bot_id, bot_secret)
     content = (
         f"# ✅ 微信推送测试\n\n"
-        f"**来自**: {body.name or 'CapitalRadar'}\n\n"
+        f"**来自**: {body.name or 'QuantConclave'}\n\n"
         "如果你在微信里看到这条消息，说明定时任务的微信推送已配置成功。"
     )
     return wecom_bot.push_markdown(content)
@@ -1978,7 +1978,7 @@ class ShortlistBatch(BaseModel):
 def _fetch_price_for_ticker(ticker: str) -> float:
     """Fetch real-time price for a ticker. Returns 0 on failure."""
     try:
-        from capitalradar.dataflows.tencent_realtime import _normalize_symbol
+        from quantconclave.dataflows.tencent_realtime import _normalize_symbol
         import requests
         norm = _normalize_symbol(ticker)
         resp = requests.get(f"http://qt.gtimg.cn/q={norm}", timeout=5)
@@ -2210,7 +2210,7 @@ def watchlist_stock_detail(
 
     # ── 1. Real-time snapshot from Tencent ──
     try:
-        from capitalradar.dataflows.tencent_realtime import get_tencent_realtime_quote, _normalize_symbol
+        from quantconclave.dataflows.tencent_realtime import get_tencent_realtime_quote, _normalize_symbol
         import requests as _req
         norm = _normalize_symbol(code)
         resp = _req.get(f"http://qt.gtimg.cn/q={norm}", timeout=5)
@@ -2301,7 +2301,7 @@ def watchlist_stock_detail(
     try:
         from datetime import datetime as _mh_dt, timedelta as _mh_td
         from web.moneyflow_cache import get_cached_moneyflow
-        from capitalradar.dataflows.eastmoney_sector import aggregate_moneyflow_wan
+        from quantconclave.dataflows.eastmoney_sector import aggregate_moneyflow_wan
         _mh_rows = get_cached_moneyflow(
             DEFAULT_CONFIG, code,
             (_mh_dt.now() - _mh_td(days=90)).strftime("%Y-%m-%d"),
@@ -2329,7 +2329,7 @@ def watchlist_stock_detail(
                 # micro-cap, 噪音 for a 2000亿 mega-cap). Anchor on the newest
                 # cached trade_date (a real trading day) so daily_basic hits.
                 try:
-                    from capitalradar.dataflows.eastmoney_sector import _get_pro as _mh_pro
+                    from quantconclave.dataflows.eastmoney_sector import _get_pro as _mh_pro
                     _td = _mh_rows[-1]["trade_date"]
                     _db = _mh_pro().daily_basic(
                         ts_code=code, trade_date=_td, fields="ts_code,circ_mv"
@@ -2353,7 +2353,7 @@ def watchlist_stock_detail(
     result["mx_block_trades"] = ""
     try:
         from concurrent.futures import ThreadPoolExecutor
-        from capitalradar.dataflows.mx_client import query_text as _mx_q
+        from quantconclave.dataflows.mx_client import query_text as _mx_q
 
         def _mx_fetch(q: str) -> str:
             try:
@@ -2389,8 +2389,8 @@ def watchlist_stock_detail(
         # ── Fetch supporting data (before prompt + LLM so model2 can reuse) ──
         ohlcv_text = ""
         try:
-            from capitalradar.dataflows.interface import route_to_vendor
-            from capitalradar.backtest.data import parse_ohlcv_csv
+            from quantconclave.dataflows.interface import route_to_vendor
+            from quantconclave.backtest.data import parse_ohlcv_csv
             # flow_detail dates are YYYYMMDD from tushare moneyflow, convert to YYYY-MM-DD.
             # min/max makes the window independent of list ordering.
             _sd = min(r["date"] for r in flow_detail)   # oldest
@@ -2580,7 +2580,7 @@ def watchlist_stock_detail(
         else:
             try:
                 # akshare fallback (may be unreachable on some machines).
-                from capitalradar.dataflows.block_trade_data import get_block_trade_detail
+                from quantconclave.dataflows.block_trade_data import get_block_trade_detail
                 bt = get_block_trade_detail(code, lookback_days=15)
                 if bt and "共 0 笔" not in bt:
                     block_trade_text = f"\n【大宗交易暗盘】\n{bt}\n"
@@ -2701,7 +2701,7 @@ def watchlist_stock_detail(
         multi_horizon_text = ""
         if result.get("flow_multi_horizon"):
             try:
-                from capitalradar.dataflows.eastmoney_sector import format_moneyflow_multi_horizon
+                from quantconclave.dataflows.eastmoney_sector import format_moneyflow_multi_horizon
                 multi_horizon_text = (
                     "【资金多周期】" + format_moneyflow_multi_horizon(result["flow_multi_horizon"]) + "\n"
                 )
@@ -2801,7 +2801,7 @@ def watchlist_stock_detail(
             return _v, _st
 
         try:
-            from capitalradar.llm_clients import create_llm_client, resolve_role_llm
+            from quantconclave.llm_clients import create_llm_client, resolve_role_llm
             import os as _os
             # Prefer caller-supplied params, fall back to per-role config
             _resolved = resolve_role_llm(DEFAULT_CONFIG, "deep")
@@ -2830,10 +2830,10 @@ def watchlist_stock_detail(
             llm = client.get_llm()
 
             # ── Structured output: enforce verdict/analysis consistency ──
-            from capitalradar.agents.schemas import (
+            from quantconclave.agents.schemas import (
                 WatchlistAnalysis, render_watchlist_analysis,
             )
-            from capitalradar.agents.utils.structured import (
+            from quantconclave.agents.utils.structured import (
                 bind_structured, invoke_structured_or_freetext,
             )
             structured_llm = bind_structured(llm, WatchlistAnalysis, "Watchlist")
@@ -2893,7 +2893,7 @@ def watchlist_stock_detail(
 
     # ── 4. Intraday minute data (Tencent) ──
     try:
-        from capitalradar.dataflows.tencent_realtime import _normalize_symbol
+        from quantconclave.dataflows.tencent_realtime import _normalize_symbol
         import requests as _req
         norm = _normalize_symbol(code)
         resp = _req.get(f"http://ifzq.gtimg.cn/appstock/app/kline/mkline?param={norm},m5,,80", timeout=8)
@@ -3456,7 +3456,7 @@ def get_index_constituents(
                 is_cached = True
         if not stocks_data:
             try:
-                from capitalradar.dataflows.eastmoney_microcap import get_microcap_constituents
+                from quantconclave.dataflows.eastmoney_microcap import get_microcap_constituents
                 stocks_data = get_microcap_constituents(400)
                 full_refresh = True
             except Exception as e:
@@ -3567,7 +3567,7 @@ def get_index_constituents(
         """Fetch prices for a batch of stocks in one HTTP request to qt.gtimg.cn."""
         results = []
         try:
-            from capitalradar.dataflows.tencent_realtime import _normalize_symbol
+            from quantconclave.dataflows.tencent_realtime import _normalize_symbol
             norms = [_normalize_symbol(item["code"]) for item in items]
             resp = _req.get(f"http://qt.gtimg.cn/q={','.join(norms)}", timeout=10)
             resp.encoding = "gbk"
@@ -3694,7 +3694,7 @@ def get_csi300_constituents():
             vol_ratio = None
             # Fetch Tencent real-time quote
             try:
-                from capitalradar.dataflows.tencent_realtime import _normalize_symbol
+                from quantconclave.dataflows.tencent_realtime import _normalize_symbol
                 norm = _normalize_symbol(code)
                 resp = _req.get(f"http://qt.gtimg.cn/q={norm}", timeout=5)
                 resp.encoding = "gbk"
@@ -3983,7 +3983,7 @@ def sync_positions_from_eastmoney():
 @app.get("/api/sector/list")
 def sector_list(fund_flow_days: str = Query(default="5d")):
     """Return all A-share industry sectors sorted by fund flow."""
-    from capitalradar.sector_scan import get_sectors_sorted
+    from quantconclave.sector_scan import get_sectors_sorted
     return get_sectors_sorted(fund_flow_days)
 
 
@@ -3993,7 +3993,7 @@ def sector_scan(sector_code: str, sector_name: str = Query(default=""),
                 cap_percent: int = Query(default=20),
                 require_inflow: bool = Query(default=False)):
     """Scan a sector with configurable strategy groups."""
-    from capitalradar.sector_scan import scan_sector
+    from quantconclave.sector_scan import scan_sector
     import json as _json
     try:
         groups = _json.loads(strategies) if strategies else None
@@ -4007,7 +4007,7 @@ def sector_scan(sector_code: str, sector_name: str = Query(default=""),
 @app.get("/api/sector/scan/{sector_code}/batch")
 def sector_scan_batch(sector_code: str):
     """Alias for sector_scan — returns empty list instead of 404 when no candidates."""
-    from capitalradar.sector_scan import scan_sector
+    from quantconclave.sector_scan import scan_sector
     return scan_sector(sector_code)
 
 
@@ -4029,8 +4029,8 @@ class BatchAnalysisRequest(PydanticBaseModel):
 @app.post("/api/sector/batch-analyze")
 def batch_analyze_candidates(body: BatchAnalysisRequest):
     """Run batch preliminary analysis on selected sector scan candidates (non-SSE)."""
-    from capitalradar.sector_scan.batch_analysis import run_batch_analysis
-    from capitalradar.llm_clients import create_llm_client, resolve_role_llm
+    from quantconclave.sector_scan.batch_analysis import run_batch_analysis
+    from quantconclave.llm_clients import create_llm_client, resolve_role_llm
 
     candidates = body.candidates
     if not candidates:
@@ -4060,8 +4060,8 @@ def batch_analyze_candidates(body: BatchAnalysisRequest):
 def batch_analyze_candidates_sse(body: BatchAnalysisRequest):
     """SSE streaming version with per-stock progress events. Uses POST to support large payloads."""
     import json as _json
-    from capitalradar.sector_scan.batch_analysis import run_batch_analysis_sse
-    from capitalradar.llm_clients import create_llm_client, resolve_role_llm
+    from quantconclave.sector_scan.batch_analysis import run_batch_analysis_sse
+    from quantconclave.llm_clients import create_llm_client, resolve_role_llm
 
     candidates = body.candidates
     language = body.language
@@ -4097,7 +4097,7 @@ def batch_analyze_candidates_sse(body: BatchAnalysisRequest):
 @app.get("/api/rotation/rrg")
 def rotation_rrg(lookback: int = Query(default=10), mode: str = Query(default="capital")):
     """Return RRG data for all A-share industries."""
-    from capitalradar.sector_scan.rotation import get_rrg_data
+    from quantconclave.sector_scan.rotation import get_rrg_data
     result = get_rrg_data(lookback=lookback, mode=mode)
     if result.get("error") and not result.get("industries"):
         # Return 200 with error field — frontend handles display
@@ -4134,7 +4134,7 @@ def get_rrg_snapshot(date: str | None = None):
 @app.get("/api/rotation/rrg/stats")
 def get_rrg_stats(days: int = Query(default=20, ge=5, le=90)):
     """Get RRG transition statistics over the last N days."""
-    from capitalradar.sector_scan.rrg_stats import compute_transition_stats
+    from quantconclave.sector_scan.rrg_stats import compute_transition_stats
     return compute_transition_stats(DEFAULT_CONFIG, days)
 
 
@@ -4155,29 +4155,29 @@ def get_rrg_history(industry_name: str, days: int = Query(default=60, ge=10, le=
 @app.get("/api/sector/concept/list")
 def list_concepts_api(keyword: str | None = None):
     """List THS concept sectors, optionally filtered by keyword."""
-    from capitalradar.sector_scan.concept_scanner import list_concepts
+    from quantconclave.sector_scan.concept_scanner import list_concepts
     return list_concepts(keyword=keyword)
 
 
 @app.get("/api/sector/concept/rank")
 def rank_concepts_api():
     """Get top-ranked concept sectors by recent performance."""
-    from capitalradar.sector_scan.concept_scanner import rank_concepts
+    from quantconclave.sector_scan.concept_scanner import rank_concepts
     return rank_concepts()
 
 
 @app.get("/api/sector/concept/scan/{concept_code}")
 def scan_concept_api(concept_code: str, top_n: int = 10):
     """Smart-scan stocks within a concept sector."""
-    from capitalradar.sector_scan.concept_scanner import scan_concept_stocks
+    from quantconclave.sector_scan.concept_scanner import scan_concept_stocks
     return scan_concept_stocks(concept_code, top_n=top_n)
 
 
 @app.post("/api/smart-scan")
 def smart_scan(body: SmartScanRequest):
     """Smart-scan Leading+Improving industries with dual-strategy scoring."""
-    from capitalradar.sector_scan.rotation import get_rrg_data
-    from capitalradar.sector_scan.smart_scanner import run_smart_scan
+    from quantconclave.sector_scan.rotation import get_rrg_data
+    from quantconclave.sector_scan.smart_scanner import run_smart_scan
 
     # Get RRG data for Leading+Improving industries
     rrg = get_rrg_data(lookback=10, mode="capital")
@@ -4201,8 +4201,8 @@ def smart_scan(body: SmartScanRequest):
     # If auto-analyze, run batch LLM analysis on top results
     report = None
     if body.auto_analyze and result["results"]:
-        from capitalradar.sector_scan.batch_analysis import run_batch_analysis
-        from capitalradar.llm_clients import create_llm_client, resolve_role_llm
+        from quantconclave.sector_scan.batch_analysis import run_batch_analysis
+        from quantconclave.llm_clients import create_llm_client, resolve_role_llm
 
         cfg = DEFAULT_CONFIG
         provider = body.quick_provider or body.provider or resolve_role_llm(cfg, "quick")[0]

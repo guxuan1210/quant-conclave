@@ -3,9 +3,9 @@ import warnings
 
 import pytest
 
-from capitalradar.llm_clients.base_client import BaseLLMClient
-from capitalradar.llm_clients.model_catalog import get_known_models
-from capitalradar.llm_clients.validators import validate_model
+from quantconclave.llm_clients.base_client import BaseLLMClient
+from quantconclave.llm_clients.model_catalog import get_known_models
+from quantconclave.llm_clients.validators import validate_model
 
 
 class DummyLLMClient(BaseLLMClient):

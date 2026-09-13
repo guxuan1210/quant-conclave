@@ -6,9 +6,9 @@ from typing import Generator, Optional, Annotated
 from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from web.results_store import get_chat_messages, save_chat_message
-from capitalradar.strategy.manager import create_strategy, list_strategies, get_strategy, delete_strategy, search_strategies, add_version
-from capitalradar.strategy.generator import generate_strategy_code, StrategyGenerationError
-from capitalradar.backtest.templates import list_templates
+from quantconclave.strategy.manager import create_strategy, list_strategies, get_strategy, delete_strategy, search_strategies, add_version
+from quantconclave.strategy.generator import generate_strategy_code, StrategyGenerationError
+from quantconclave.backtest.templates import list_templates
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def build_strategy_system_prompt(config: dict, lang: str = "Chinese") -> str:
     today = datetime.now()
     return (
-        f"You are the CapitalRadar Strategy Agent, specialized in creating, managing, "
+        f"You are the QuantConclave Strategy Agent, specialized in creating, managing, "
         f"and refining trading strategies.\n\n"
         f"**Current date**: {today.strftime('%Y-%m-%d')}\n\n"
         f"## Capabilities\n"
@@ -78,7 +78,7 @@ def build_strategy_tools(config, llm):
 
 
 def create_strategy_agent(config, lang=None):
-    from capitalradar.llm_clients import create_llm_client, resolve_role_llm
+    from quantconclave.llm_clients import create_llm_client, resolve_role_llm
     provider, model, _ = resolve_role_llm(config, "deep")
     client = create_llm_client(provider=provider, model=model, base_url=config.get("backend_url"), timeout=120)
     llm = client.get_llm()

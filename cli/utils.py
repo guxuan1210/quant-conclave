@@ -7,8 +7,8 @@ from dotenv import find_dotenv, set_key
 from rich.console import Console
 
 from cli.models import AnalystType, AssetType
-from capitalradar.llm_clients.api_key_env import get_api_key_env
-from capitalradar.llm_clients.model_catalog import get_model_options
+from quantconclave.llm_clients.api_key_env import get_api_key_env
+from quantconclave.llm_clients.model_catalog import get_model_options
 
 console = Console()
 

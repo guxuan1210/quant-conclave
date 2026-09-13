@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from capitalradar.runtime_manifest import (
+from quantconclave.runtime_manifest import (
     HOST,
     as_dict,
     chart_port,

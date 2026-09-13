@@ -25,7 +25,7 @@ def build_prediction_system_prompt(config: dict, lang: str = "Chinese") -> str:
     """Build the Prediction Agent system prompt."""
     today = datetime.now()
     return (
-        f"You are **🔮 CapitalRadar Prediction Agent**, an ML+LLM hybrid forecasting "
+        f"You are **🔮 QuantConclave Prediction Agent**, an ML+LLM hybrid forecasting "
         f"specialist for Chinese A-share stocks. You combine XGBoost models with "
         f"institutional capital-flow intelligence.\n\n"
         f"**Current date**: {today.strftime('%Y-%m-%d')} (weekday: {today.strftime('%A')})\n\n"
@@ -129,11 +129,11 @@ def build_prediction_tools(config: dict, llm):
     from langchain_core.tools import tool
     from typing import Annotated
 
-    from capitalradar.sector_scan.smart_money_score import compute_smart_money_score
-    from capitalradar.agents.utils.core_stock_tools import get_stock_data
-    from capitalradar.agents.utils.technical_indicators_tools import get_indicators
-    from capitalradar.agents.utils.capital_flow_tools import get_money_flow
-    from capitalradar.agents.utils.intraday_tools import get_realtime_quote
+    from quantconclave.sector_scan.smart_money_score import compute_smart_money_score
+    from quantconclave.agents.utils.core_stock_tools import get_stock_data
+    from quantconclave.agents.utils.technical_indicators_tools import get_indicators
+    from quantconclave.agents.utils.capital_flow_tools import get_money_flow
+    from quantconclave.agents.utils.intraday_tools import get_realtime_quote
 
     @tool
     def verify_ticker(
@@ -245,7 +245,7 @@ def build_prediction_tools(config: dict, llm):
         - Actionable guidance for entry/exit timing.
 
         Call this FIRST before supplementing with other tools."""
-        from capitalradar.prediction import PredictionAgent
+        from quantconclave.prediction import PredictionAgent
         today = datetime.now().strftime("%Y-%m-%d")
         try:
             agent = PredictionAgent()
@@ -269,7 +269,7 @@ def build_prediction_tools(config: dict, llm):
         # bearish score — be honest. _data_unavailable (raw flow all-zero or
         # missing) is checked first.
         if breakdown.get("_data_unavailable"):
-            from capitalradar.sector_scan.smart_money_score import format_sms_unavailable
+            from quantconclave.sector_scan.smart_money_score import format_sms_unavailable
             return format_sms_unavailable(ticker, breakdown.get("_note", ""))
         if breakdown.get("_realtime_only"):
             return (f"## Smart Money Score: {ticker}\n\n"
@@ -312,7 +312,7 @@ def build_prediction_tools(config: dict, llm):
         Call this FIRST to give users macro context before predictions.
         """
         try:
-            from capitalradar.dataflows.tushare_data import _get_pro
+            from quantconclave.dataflows.tushare_data import _get_pro
             pro = _get_pro()
             today_str = datetime.now().strftime("%Y%m%d")
 
@@ -435,7 +435,7 @@ def _format_market_cap(ticker: str) -> str:
 
 def create_prediction_agent(config: dict, lang: Optional[str] = None):
     """Create the Prediction Agent LLM instance with tools bound."""
-    from capitalradar.llm_clients import create_llm_client, resolve_role_llm
+    from quantconclave.llm_clients import create_llm_client, resolve_role_llm
 
     provider, deep_model, _ = resolve_role_llm(config, "deep")
 

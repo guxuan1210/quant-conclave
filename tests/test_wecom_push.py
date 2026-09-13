@@ -28,7 +28,7 @@ DEEP_SUMMARY = {
     "rating": "Buy",
     "signal": "买入",
     "analysts": "market,news",
-    "json_path": "600036/CapitalRadarStrategy_logs/full_states_log_2026-08-25.json",
+    "json_path": "600036/QuantConclaveStrategy_logs/full_states_log_2026-08-25.json",
 }
 
 

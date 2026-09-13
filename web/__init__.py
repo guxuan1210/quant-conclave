@@ -1,1 +1,1 @@
-"""CapitalRadar Web Dashboard."""
+"""QuantConclave Web Dashboard."""

@@ -25,9 +25,9 @@ from web.moneyflow_cache import (
     init_moneyflow_cache,
 )
 from web.results_store import _get_conn, init_db
-from capitalradar.backtest import data as bdata
-from capitalradar.dataflows import interface
-from capitalradar.agents.utils import capital_flow_tools as cft
+from quantconclave.backtest import data as bdata
+from quantconclave.dataflows import interface
+from quantconclave.agents.utils import capital_flow_tools as cft
 
 
 @pytest.fixture()

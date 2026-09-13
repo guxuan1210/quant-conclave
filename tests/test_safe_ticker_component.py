@@ -5,7 +5,7 @@ import unittest
 
 import pytest
 
-from capitalradar.dataflows.utils import safe_ticker_component
+from quantconclave.dataflows.utils import safe_ticker_component
 
 
 @pytest.mark.unit

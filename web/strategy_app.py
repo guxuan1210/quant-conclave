@@ -19,7 +19,7 @@ if _project_root not in sys.path:
 
 from dotenv import find_dotenv, load_dotenv
 load_dotenv(find_dotenv(usecwd=True), override=False)
-from capitalradar.default_config import DEFAULT_CONFIG
+from quantconclave.default_config import DEFAULT_CONFIG
 
 logger = logging.getLogger("strategy_app")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
@@ -64,7 +64,7 @@ def _get_rows(source: str, days: int) -> list[dict]:
 
 def _batch_prices(codes: list[str]) -> dict[str, float | None]:
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    from capitalradar.dataflows.tencent_realtime import _normalize_symbol
+    from quantconclave.dataflows.tencent_realtime import _normalize_symbol
     import requests as _req
     prices: dict[str, float | None] = {}
     def _fetch(batch):
@@ -411,7 +411,7 @@ def llm_report(body: LLMBody):
 请简短分析策略效果、模型选择、风险点、操作建议。中文。"""
 
     try:
-        from capitalradar.llm_clients import create_llm_client, resolve_role_llm
+        from quantconclave.llm_clients import create_llm_client, resolve_role_llm
         _p = body.provider or resolve_role_llm(DEFAULT_CONFIG, "deep")[0]
         _m = body.model or resolve_role_llm(DEFAULT_CONFIG, "deep")[1]
         _bu = DEFAULT_CONFIG.get("backend_url") or None; _ex = {}

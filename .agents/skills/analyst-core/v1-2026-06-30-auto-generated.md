@@ -1,10 +1,10 @@
 ---
-name: capitalradar-analyst-core
+name: quantconclave-analyst-core
 description: Auto-generated skill v1 from resolved backtest experiences
 version: 1
 created: 2026-06-30
 ---
-# CapitalRadar Analyst Core Skill
+# QuantConclave Analyst Core Skill
 
 ## Core Principles
 

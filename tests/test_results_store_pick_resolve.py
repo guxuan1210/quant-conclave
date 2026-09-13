@@ -17,9 +17,9 @@ from web.results_store import (
     resolve_picks,
     save_pick,
 )
-from capitalradar.hot_tracker import price_source as ps
-from capitalradar.hot_tracker import store as ht
-from capitalradar.hot_tracker.settlement import (
+from quantconclave.hot_tracker import price_source as ps
+from quantconclave.hot_tracker import store as ht
+from quantconclave.hot_tracker.settlement import (
     PROFIT_TAKEN, STOPPED, classify_settlement, compute_settle_date,
 )
 

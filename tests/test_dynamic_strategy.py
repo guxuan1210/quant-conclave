@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from capitalradar.sector_scan.dynamic_strategy import (
+from quantconclave.sector_scan.dynamic_strategy import (
     STRATEGY_FIELDS,
     validate_strategy_fields,
     execute_strategy,

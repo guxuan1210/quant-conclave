@@ -46,7 +46,7 @@ def _scheduler_manager():
 
 
 def _default_config() -> dict:
-    from capitalradar.default_config import DEFAULT_CONFIG
+    from quantconclave.default_config import DEFAULT_CONFIG
     return DEFAULT_CONFIG
 
 

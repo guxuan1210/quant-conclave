@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Generator, Optional
 
 from web.results_store import get_chat_messages, save_chat_message, get_thread_run_ids
-from capitalradar.dataflows.config import get_config
+from quantconclave.dataflows.config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +20,8 @@ def build_aipick_system_prompt(config: dict, lang: str = "Chinese") -> str:
     """Build the AI Pick agent system prompt."""
     today = datetime.now()
     return (
-        f"You are **🧠 CapitalRadar AI Pick**, a dedicated A-share stock screening "
-        f"intelligence powered by CapitalRadar's multi-agent framework.\n\n"
+        f"You are **🧠 QuantConclave AI Pick**, a dedicated A-share stock screening "
+        f"intelligence powered by QuantConclave's multi-agent framework.\n\n"
         f"**Current date**: {today.strftime('%Y-%m-%d')} (weekday: {today.strftime('%A')})\n\n"
 
         # ── Mission ──
@@ -136,14 +136,14 @@ def build_aipick_tools(config: dict, llm):
     from typing import Annotated
     import time as _time
 
-    from capitalradar.sector_scan.smart_money_score import (
+    from quantconclave.sector_scan.smart_money_score import (
         compute_smart_money_score, format_sms_unavailable,
     )
-    from capitalradar.sector_scan.dynamic_strategy import (
+    from quantconclave.sector_scan.dynamic_strategy import (
         build_strategy_prompt, parse_strategy_json, validate_strategy,
         execute_strategy, describe_strategy,
     )
-    from capitalradar.sector_scan.rotation import get_rrg_data
+    from quantconclave.sector_scan.rotation import get_rrg_data
 
     # ── Simple time-based cache for slow external API calls ──
     _cache = {"rrg": (0, None), "transition": (0, None)}
@@ -161,12 +161,12 @@ def build_aipick_tools(config: dict, llm):
         now = _time.time()
         if now - _cache["transition"][0] < _CACHE_TTL and _cache["transition"][1] is not None:
             return _cache["transition"][1]
-        from capitalradar.sector_scan.rrg_stats import compute_transition_stats
+        from quantconclave.sector_scan.rrg_stats import compute_transition_stats
         data = compute_transition_stats(config, lookback_days=60)
         _cache["transition"] = (now, data)
         return data
-    from capitalradar.sector_scan.smart_scanner import get_industry_stocks
-    from capitalradar.sector_scan.pick_tracker import record_pick, get_performance_report
+    from quantconclave.sector_scan.smart_scanner import get_industry_stocks
+    from quantconclave.sector_scan.pick_tracker import record_pick, get_performance_report
     from web.results_store import search_analyses as _search_analyses, resolve_picks
 
     _search = partial(_search_analyses, config)
@@ -534,7 +534,7 @@ def build_aipick_tools(config: dict, llm):
 
         # ── Raw flow data for cross-validation ──
         try:
-            from capitalradar.agents.utils.capital_flow_tools import get_money_flow
+            from quantconclave.agents.utils.capital_flow_tools import get_money_flow
             from datetime import datetime, timedelta
             import csv, io
             ed = datetime.now().strftime("%Y-%m-%d")
@@ -620,7 +620,7 @@ def build_aipick_tools(config: dict, llm):
         # Batch-fetch daily basics (PE/PB/market_cap) for enrichment. NOTE the
         # source keys are total_mv/pe/pb — map them to the strategy-field names.
         try:
-            from capitalradar.sector_scan.smart_scanner import get_daily_basic_batch
+            from quantconclave.sector_scan.smart_scanner import get_daily_basic_batch
             all_codes = []
             for ind in leading_improving[:15]:
                 stocks = get_industry_stocks(ind.get("name", "")) if ind.get("name") else []
@@ -660,7 +660,7 @@ def build_aipick_tools(config: dict, llm):
         # metrics over a REAL 180-day bottom window. Stocks without ≥180 trading
         # days are excluded from bottom-fishing (never measured on a truncated
         # window); counts are surfaced in the output. ──
-        from capitalradar.sector_scan.reversal_metrics import fetch_reversal_metrics
+        from quantconclave.sector_scan.reversal_metrics import fetch_reversal_metrics
         import concurrent.futures as _cf
 
         def _enrich(c: dict):
@@ -699,7 +699,7 @@ def build_aipick_tools(config: dict, llm):
 
         # ── Strategy/field validation: drop conditions whose data the pool does
         # not carry, and say so — never silently return an empty result. ──
-        from capitalradar.sector_scan.dynamic_strategy import validate_strategy_fields
+        from quantconclave.sector_scan.dynamic_strategy import validate_strategy_fields
         missing = validate_strategy_fields(strategy, candidate_pool)
         missing_note = ""
         if missing:
@@ -779,7 +779,7 @@ def build_aipick_tools(config: dict, llm):
         Returns 5-day and 20-day direction probabilities, price range intervals,
         institutional behavior phase classification, and actionable guidance.
         Use this to help users decide entry/exit timing."""
-        from capitalradar.prediction import PredictionAgent
+        from quantconclave.prediction import PredictionAgent
         today = datetime.now().strftime("%Y-%m-%d")
         try:
             agent = PredictionAgent()
@@ -802,7 +802,7 @@ def build_aipick_tools(config: dict, llm):
         Use this when the user wants to see "what's hot today" or discover stocks
         showing strong price momentum regardless of industry.
         """
-        from capitalradar.dataflows.interface import route_to_vendor
+        from quantconclave.dataflows.interface import route_to_vendor
         return route_to_vendor("get_top_gainers", trade_date=None, top_n=top_n,
                                min_amount=min_amount, filter_st=True)
 
@@ -821,7 +821,7 @@ def build_aipick_tools(config: dict, llm):
         Use this when the user wants "best stocks overall" based on both technical
         strength AND institutional capital flow — not just top gainers.
         """
-        from capitalradar.dataflows.interface import route_to_vendor
+        from quantconclave.dataflows.interface import route_to_vendor
         return route_to_vendor("get_multi_factor_ranking", trade_date=None, top_n=top_n,
                                min_amount=min_amount)
 
@@ -845,7 +845,7 @@ def build_aipick_tools(config: dict, llm):
         - "资金流向排名" (capital flow ranking)
         - Any question about daily capital inflow ranking
         """
-        from capitalradar.dataflows.interface import route_to_vendor
+        from quantconclave.dataflows.interface import route_to_vendor
         return route_to_vendor("get_top_net_inflow", trade_date=None, top_n=top_n,
                                min_amount=min_amount)
 
@@ -1113,7 +1113,7 @@ def build_aipick_tools(config: dict, llm):
             candidates = div_list[:50]
 
         # ── Step 3: Capital flow validation (sequential) ──
-        from capitalradar.sector_scan.smart_money_score import compute_smart_money_score
+        from quantconclave.sector_scan.smart_money_score import compute_smart_money_score
         import time as _time
 
         for d in candidates[:top_n + 10]:
@@ -1144,7 +1144,7 @@ def build_aipick_tools(config: dict, llm):
         # ── Fetch current price + 180-day low for display (validated) ──
         # Bottom reference = a REAL 180-trading-day low. Stocks without enough
         # history show "—" instead of silently falling back to a 20-day low.
-        from capitalradar.sector_scan.reversal_metrics import fetch_reversal_metrics
+        from quantconclave.sector_scan.reversal_metrics import fetch_reversal_metrics
         n_insufficient = 0
         n_fetch_failed = 0
         for d in candidates[:top_n + 10]:
@@ -1273,9 +1273,9 @@ def build_aipick_tools(config: dict, llm):
         import re as _re
 
         today_str = _dt.now().strftime("%Y-%m-%d")
-        from capitalradar.prediction.feature_engine import FeatureEngine
-        from capitalradar.prediction.direction_predictor import DirectionPredictor
-        from capitalradar.sector_scan.smart_money_score import compute_smart_money_score
+        from quantconclave.prediction.feature_engine import FeatureEngine
+        from quantconclave.prediction.direction_predictor import DirectionPredictor
+        from quantconclave.sector_scan.smart_money_score import compute_smart_money_score
 
         fe = FeatureEngine()
         dp = DirectionPredictor()
@@ -1350,7 +1350,7 @@ def build_aipick_tools(config: dict, llm):
         # Bottom-fishing must reference a genuine bottom (≥180 trading days).
         # Stocks with insufficient history are excluded and counted, never
         # silently measured on a truncated 20/40-day window.
-        from capitalradar.sector_scan.reversal_metrics import fetch_reversal_metrics
+        from quantconclave.sector_scan.reversal_metrics import fetch_reversal_metrics
         ohlcv_cache = {}  # {ts_code: {current, low180, high180, ma20, rsi_14, rally_pct}}
         n_insufficient = 0
         n_fetch_failed = 0
@@ -1505,7 +1505,7 @@ def build_aipick_tools(config: dict, llm):
             # Fallback: use real-time fund flow direction as proxy
             if sms_val == 0:
                 try:
-                    from capitalradar.dataflows.eastmoney_realtime_flow import _get_realtime_fund_flow
+                    from quantconclave.dataflows.eastmoney_realtime_flow import _get_realtime_fund_flow
                     rt_flow = _get_realtime_fund_flow(code)
                     if rt_flow:
                         inflow = rt_flow.get("main_net_inflow", 0)
@@ -1540,7 +1540,7 @@ def build_aipick_tools(config: dict, llm):
         saved_count = 0
         for code, s, total in top[:5]:
             try:
-                from capitalradar.sector_scan.pick_tracker import record_pick
+                from quantconclave.sector_scan.pick_tracker import record_pick
                 record_pick(
                     config=cfg, ticker=code, pick_date=today_str,
                     source="hot_reversal", strategy="热点反转五维评分",
@@ -1634,7 +1634,7 @@ def build_aipick_tools(config: dict, llm):
         Use this to evaluate whether the 热点反转 strategy is working.
         """
         try:
-            from capitalradar.sector_scan.pick_tracker import resolve_all_picks, get_performance_report
+            from quantconclave.sector_scan.pick_tracker import resolve_all_picks, get_performance_report
             from web.results_store import get_picks
             config = get_config()
 
@@ -1721,7 +1721,7 @@ def build_aipick_tools(config: dict, llm):
         against LIVE intraday flow. Critical for same-day decisions.
         """
         try:
-            from capitalradar.dataflows.eastmoney_realtime_flow import _get_realtime_fund_flow
+            from quantconclave.dataflows.eastmoney_realtime_flow import _get_realtime_fund_flow
             result = _get_realtime_fund_flow(ticker)
             if not result:
                 return f"实时资金流数据不可用: {ticker}（可能非交易时段或数据源异常）"
@@ -1760,7 +1760,7 @@ def build_aipick_tools(config: dict, llm):
         Use this to detect hidden institutional positioning that doesn't appear
         in regular order-book capital flow data.
         """
-        from capitalradar.dataflows.block_trade_data import get_block_trade_detail
+        from quantconclave.dataflows.block_trade_data import get_block_trade_detail
         return get_block_trade_detail(ticker, lookback_days=lookback_days)
 
     @tool
@@ -1772,7 +1772,7 @@ def build_aipick_tools(config: dict, llm):
         万元, per-window deviation ratio vs the configured threshold, and a verdict
         (一致 / 偏差 / 数据缺失). Use when the Smart Money Score or its underlying
         flow data looks suspicious, or before relying on a low/high SMS figure."""
-        from capitalradar.sector_scan.moneyflow_verifier import (
+        from quantconclave.sector_scan.moneyflow_verifier import (
             verify_moneyflow as _verify, _render_verify_moneyflow,
         )
         try:
@@ -1791,7 +1791,7 @@ def build_aipick_tools(config: dict, llm):
 
 def create_aipick_agent(run_ids: list[str], config: dict, lang: Optional[str] = None):
     """Create the AI Pick LLM instance with tools bound."""
-    from capitalradar.llm_clients import create_llm_client, resolve_role_llm
+    from quantconclave.llm_clients import create_llm_client, resolve_role_llm
 
     provider, deep_model, _ = resolve_role_llm(config, "deep")
 

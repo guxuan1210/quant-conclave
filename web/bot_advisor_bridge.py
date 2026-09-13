@@ -47,7 +47,7 @@ import logging
 import os
 import threading
 
-from capitalradar.dataflows.config import get_config
+from quantconclave.dataflows.config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ def _threads_path() -> str:
     """Persisted per-(bot, user) thread map, keyed by ``bot_id|chatid``."""
     cfg = get_config()
     results_dir = (cfg.get("results_dir")
-                   or os.path.expanduser("~/.capitalradar/logs"))
+                   or os.path.expanduser("~/.quantconclave/logs"))
     return os.path.join(results_dir, "wecom_bot_threads.json")
 
 
@@ -102,7 +102,7 @@ def _resolve_thread(bot_id: str, chatid: str) -> str:
     frontend selects this same thread_id, so the two surfaces share one
     conversation only when the user asks them to.
     """
-    from capitalradar.default_config import DEFAULT_CONFIG
+    from quantconclave.default_config import DEFAULT_CONFIG
     from web.results_store import create_chat_thread
 
     thread_map = _load_thread_map()
@@ -134,7 +134,7 @@ def _push_setting_path() -> str:
     """Persisted web-advisor→WeChat push switch (survives restarts)."""
     cfg = get_config()
     results_dir = (cfg.get("results_dir")
-                   or os.path.expanduser("~/.capitalradar/logs"))
+                   or os.path.expanduser("~/.quantconclave/logs"))
     return os.path.join(results_dir, "web_advisor_wechat_push.json")
 
 
@@ -151,7 +151,7 @@ def get_web_advisor_push_enabled() -> bool:
                 return data["enabled"]
     except Exception as exc:  # noqa: BLE001
         logger.warning("Web-advisor push setting load failed: %s", exc)
-    from capitalradar.default_config import DEFAULT_CONFIG
+    from quantconclave.default_config import DEFAULT_CONFIG
     return bool(DEFAULT_CONFIG.get("web_advisor_wechat_push_enabled", False))
 
 
@@ -175,7 +175,7 @@ def _binding_path() -> str:
     """Persisted web-advisor↔WeCom channel binding + WeChat→web mirror switch."""
     cfg = get_config()
     results_dir = (cfg.get("results_dir")
-                   or os.path.expanduser("~/.capitalradar/logs"))
+                   or os.path.expanduser("~/.quantconclave/logs"))
     return os.path.join(results_dir, "web_advisor_wecom_binding.json")
 
 
@@ -249,7 +249,7 @@ def _registry_path() -> str:
     """Persisted WeCom user registry (names + active + per-user connectivity)."""
     cfg = get_config()
     results_dir = (cfg.get("results_dir")
-                   or os.path.expanduser("~/.capitalradar/logs"))
+                   or os.path.expanduser("~/.quantconclave/logs"))
     return os.path.join(results_dir, "wecom_advisor_users.json")
 
 
@@ -632,7 +632,7 @@ def handle_message(text: str, chatid: str, chat_type: int) -> None:
 
     with _TURN_LOCK:
         try:
-            from capitalradar.default_config import DEFAULT_CONFIG
+            from quantconclave.default_config import DEFAULT_CONFIG
             from web.wecom_push import _chunk_text
             from web import wecom_bot
 

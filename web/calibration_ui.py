@@ -1,8 +1,8 @@
 """FastAPI routes for calibration panel."""
 from fastapi import APIRouter
 from pydantic import BaseModel
-from capitalradar.graph.loop_coordinator import run_full_loop
-from capitalradar.graph.meta_evaluator import approve_proposal
+from quantconclave.graph.loop_coordinator import run_full_loop
+from quantconclave.graph.meta_evaluator import approve_proposal
 
 router = APIRouter(prefix="/api/calibration", tags=["calibration"])
 
@@ -19,7 +19,7 @@ def _get_conn(config: dict):
 
 @router.get("/runs")
 def list_runs(limit: int = 20):
-    from capitalradar.default_config import DEFAULT_CONFIG as config
+    from quantconclave.default_config import DEFAULT_CONFIG as config
     conn = _get_conn(config)
     rows = conn.execute(
         "SELECT * FROM calibration_runs ORDER BY run_date DESC LIMIT ?", (limit,)
@@ -30,7 +30,7 @@ def list_runs(limit: int = 20):
 
 @router.get("/runs/latest")
 def latest_run():
-    from capitalradar.default_config import DEFAULT_CONFIG as config
+    from quantconclave.default_config import DEFAULT_CONFIG as config
     conn = _get_conn(config)
     row = conn.execute(
         "SELECT * FROM calibration_runs ORDER BY run_date DESC LIMIT 1"
@@ -41,7 +41,7 @@ def latest_run():
 
 @router.get("/runs/{rid}")
 def get_run(rid: int):
-    from capitalradar.default_config import DEFAULT_CONFIG as config
+    from quantconclave.default_config import DEFAULT_CONFIG as config
     conn = _get_conn(config)
     row = conn.execute("SELECT * FROM calibration_runs WHERE id=?", (rid,)).fetchone()
     conn.close()
@@ -50,7 +50,7 @@ def get_run(rid: int):
 
 @router.post("/run")
 def trigger_run():
-    from capitalradar.default_config import DEFAULT_CONFIG as config
+    from quantconclave.default_config import DEFAULT_CONFIG as config
     result = run_full_loop(config, trigger="manual")
     return result
 
@@ -62,6 +62,6 @@ class ProposalApproval(BaseModel):
 
 @router.post("/proposal/approve")
 def approve_proposal_endpoint(body: ProposalApproval):
-    from capitalradar.default_config import DEFAULT_CONFIG as config
+    from quantconclave.default_config import DEFAULT_CONFIG as config
     approve_proposal(config, body.rule_name, body.field_name)
     return {"status": "approved", "rule": body.rule_name, "field": body.field_name}

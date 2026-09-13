@@ -18,8 +18,8 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from capitalradar.backtest.data import fetch_ohlcv_panel, parse_ohlcv_csv
-from capitalradar.dataflows import tushare_data
+from quantconclave.backtest.data import fetch_ohlcv_panel, parse_ohlcv_csv
+from quantconclave.dataflows import tushare_data
 
 
 # ---- parse_ohlcv_csv keeps turnover from every vendor spelling ----------------
@@ -67,7 +67,7 @@ def test_fetch_ohlcv_panel_columns_unchanged(monkeypatch):
         "600030.SH,2026-08-28,27.8,28.0,27.7,27.93,250000,0.80\n"
     )
     monkeypatch.setattr(
-        "capitalradar.dataflows.interface.route_to_vendor",
+        "quantconclave.dataflows.interface.route_to_vendor",
         lambda *a, **k: raw,
     )
     panel = fetch_ohlcv_panel("600030.SH", "2026-08-28", "2026-08-31")

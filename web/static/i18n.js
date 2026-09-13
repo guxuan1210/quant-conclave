@@ -1,7 +1,7 @@
-/* i18n for the CapitalRadar main dashboard (web/templates/index.html + web/static/app.js).
+/* i18n for the QuantConclave main dashboard (web/templates/index.html + web/static/app.js).
  *
  * Two UI languages: zh (default) and en. Toggled via the header button; persisted in
- * localStorage("capitalradar_ui_lang"); applied by full page reload.
+ * localStorage("quantconclave_ui_lang"); applied by full page reload.
  *
  * IMPORTANT DESIGN RULES (see plan web/i18n-plan.md):
  *  - Only UI chrome is translated. Logical values that double as display text
@@ -15,14 +15,14 @@
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "capitalradar_ui_lang";
+  var STORAGE_KEY = "quantconclave_ui_lang";
   var DEFAULT_LANG = "zh";
 
   var dict = { zh: {}, en: {} };
 
   dict.zh = {
     // ── branding / chrome ──
-    "brand.title": "CapitalRadar 仪表盘",
+    "brand.title": "QuantConclave 仪表盘",
     "brand.tagline": "AI 主力资金流向侦测 — 赋能散户追踪聪明钱足迹",
     "tab.analyze": "深度分析",
     "tab.history": "历史智能体",
@@ -774,7 +774,7 @@
     "scan.netInflow": "主力净流入: {v} 万",
     "scan.crossStr": "交叉强度: {v}",
     "scan.close": "收盘: ¥{v}",
-    "scan.analyze": "用 CapitalRadar 分析",
+    "scan.analyze": "用 QuantConclave 分析",
     "scan.save": "☆ 保存",
     "scan.saveTitle": "添加到自选",
     "scan.stPending": "等待",
@@ -1009,8 +1009,8 @@
     "ha.analyzing": "分析中...",
     "ha.welcome": "欢迎使用历史智能体。使用左侧面板选择记录，然后在这里提问。",
     "ha.inputPh": "询问分析结果...",
-    "adv.title": "CapitalRadar 顾问",
-    "adv.welcome": "欢迎使用 CapitalRadar 顾问。<br>开始新对话或从左侧选择一个对话。",
+    "adv.title": "QuantConclave 顾问",
+    "adv.welcome": "欢迎使用 QuantConclave 顾问。<br>开始新对话或从左侧选择一个对话。",
     "adv.inputPh": "在这里输入你的问题...",
     "adv.collapse": "收起",
     "adv.wechatPush": "回复推微信",
@@ -1084,7 +1084,7 @@
     "chat.msgsShort": "{n} 条",
     "chat.unknownError": "未知错误",
     "chat.toolsUsed": "使用工具: ",
-    "chat.welcomeAdvisor": "欢迎使用 CapitalRadar 顾问。<br>新建对话或从左侧选择一个。",
+    "chat.welcomeAdvisor": "欢迎使用 QuantConclave 顾问。<br>新建对话或从左侧选择一个。",
     "chat.noTickers": "暂无股票，点击「刷新」加载",
     "chat.stocksCount": "{n} 只股票",
     "chat.failed": "加载失败",
@@ -1114,7 +1114,7 @@
 
   dict.en = {
     // ── branding / chrome ──
-    "brand.title": "CapitalRadar Dashboard",
+    "brand.title": "QuantConclave Dashboard",
     "brand.tagline": "AI Institutional Capital Flow Detection — Empowering Retail Investors to Track Smart-Money Footprints",
     "tab.analyze": "Deep Analysis",
     "tab.history": "History Agent",
@@ -1866,7 +1866,7 @@
     "scan.netInflow": "Net Inflow: {v} 万",
     "scan.crossStr": "Cross Str: {v}",
     "scan.close": "Close: ¥{v}",
-    "scan.analyze": "Analyze with CapitalRadar",
+    "scan.analyze": "Analyze with QuantConclave",
     "scan.save": "☆ Save",
     "scan.saveTitle": "Add to shortlist",
     "scan.stPending": "pending",
@@ -2101,8 +2101,8 @@
     "ha.analyzing": "Analyzing...",
     "ha.welcome": "Welcome to History Agent. Use the left panel to select records, then ask questions here.",
     "ha.inputPh": "Ask about analysis results...",
-    "adv.title": "CapitalRadar Advisor",
-    "adv.welcome": "Welcome to CapitalRadar Advisor.<br>Start a new conversation or select one from the left panel.",
+    "adv.title": "QuantConclave Advisor",
+    "adv.welcome": "Welcome to QuantConclave Advisor.<br>Start a new conversation or select one from the left panel.",
     "adv.inputPh": "Type your question here...",
     "adv.collapse": "Collapse",
     "adv.wechatPush": "Push reply to WeChat",
@@ -2176,7 +2176,7 @@
     "chat.msgsShort": "{n} msgs",
     "chat.unknownError": "Unknown error",
     "chat.toolsUsed": "Tools used: ",
-    "chat.welcomeAdvisor": "Welcome to CapitalRadar Advisor.<br>Start a new conversation or select one from the left panel.",
+    "chat.welcomeAdvisor": "Welcome to QuantConclave Advisor.<br>Start a new conversation or select one from the left panel.",
     "chat.noTickers": "No stocks yet, click 'Refresh' to load",
     "chat.stocksCount": "{n} stocks",
     "chat.failed": "Failed",

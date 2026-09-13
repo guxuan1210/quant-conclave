@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 import pandas as pd
 import numpy as np
-from capitalradar.prediction.feature_engine import FeatureEngine
+from quantconclave.prediction.feature_engine import FeatureEngine
 
 
 MOCK_OHLCV_CSV = """Date,Open,High,Low,Close,Volume
@@ -26,7 +26,7 @@ MOCK_MONEYFLOW_CSV = """ts_code,trade_date,net_amount,buy_elg_amount,sell_elg_am
 
 
 class TestFeatureEngine:
-    @patch("capitalradar.prediction.feature_engine.route_to_vendor")
+    @patch("quantconclave.prediction.feature_engine.route_to_vendor")
     def test_build_features_returns_dataframe(self, mock_route):
         """FeatureEngine should return a DataFrame with one row and correct columns."""
         mock_route.side_effect = lambda method, *args, **kwargs: {
@@ -40,7 +40,7 @@ class TestFeatureEngine:
         assert isinstance(df, pd.DataFrame)
         assert len(df) == 1  # one row for the requested date
 
-    @patch("capitalradar.prediction.feature_engine.route_to_vendor")
+    @patch("quantconclave.prediction.feature_engine.route_to_vendor")
     def test_build_features_has_required_columns(self, mock_route):
         """Output must include price, volume, capital flow, and technical columns."""
         mock_route.side_effect = lambda method, *args, **kwargs: {
@@ -61,8 +61,8 @@ class TestFeatureEngine:
         for col in required:
             assert col in df.columns, f"Missing column: {col}"
 
-    @patch("capitalradar.prediction.feature_engine.FeatureEngine._fetch_moneyflow")
-    @patch("capitalradar.prediction.feature_engine.route_to_vendor")
+    @patch("quantconclave.prediction.feature_engine.FeatureEngine._fetch_moneyflow")
+    @patch("quantconclave.prediction.feature_engine.route_to_vendor")
     def test_missing_data_returns_partial_features(self, mock_route, mock_flow):
         """Should return partial features with NaN for unavailable data."""
         mock_route.return_value = MOCK_OHLCV_CSV

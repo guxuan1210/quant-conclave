@@ -10,8 +10,8 @@ import importlib
 
 import pytest
 
-import capitalradar.default_config as default_config_module
-from capitalradar.llm_clients import resolve_role_llm
+import quantconclave.default_config as default_config_module
+from quantconclave.llm_clients import resolve_role_llm
 
 
 def test_own_provider_wins():
@@ -85,18 +85,18 @@ def _reload_with_env(monkeypatch, **overrides):
 def test_env_override_keys_registered():
     """The per-role provider env vars are mapped to config keys."""
     dc = default_config_module
-    assert "CAPITALRADAR_DEEP_THINK_PROVIDER" in dc._ENV_OVERRIDES
-    assert "CAPITALRADAR_QUICK_THINK_PROVIDER" in dc._ENV_OVERRIDES
-    assert dc._ENV_OVERRIDES["CAPITALRADAR_DEEP_THINK_PROVIDER"] == "deep_think_provider"
-    assert dc._ENV_OVERRIDES["CAPITALRADAR_QUICK_THINK_PROVIDER"] == "quick_think_provider"
+    assert "QUANTCONCLAVE_DEEP_THINK_PROVIDER" in dc._ENV_OVERRIDES
+    assert "QUANTCONCLAVE_QUICK_THINK_PROVIDER" in dc._ENV_OVERRIDES
+    assert dc._ENV_OVERRIDES["QUANTCONCLAVE_DEEP_THINK_PROVIDER"] == "deep_think_provider"
+    assert dc._ENV_OVERRIDES["QUANTCONCLAVE_QUICK_THINK_PROVIDER"] == "quick_think_provider"
 
 
 def test_env_override_applies(monkeypatch):
-    """CAPITALRADAR_DEEP_THINK_PROVIDER lands in DEFAULT_CONFIG."""
+    """QUANTCONCLAVE_DEEP_THINK_PROVIDER lands in DEFAULT_CONFIG."""
     dc = _reload_with_env(
         monkeypatch,
-        CAPITALRADAR_DEEP_THINK_PROVIDER="google",
-        CAPITALRADAR_QUICK_THINK_PROVIDER="ollama",
+        QUANTCONCLAVE_DEEP_THINK_PROVIDER="google",
+        QUANTCONCLAVE_QUICK_THINK_PROVIDER="ollama",
     )
     assert dc.DEFAULT_CONFIG["deep_think_provider"] == "google"
     assert dc.DEFAULT_CONFIG["quick_think_provider"] == "ollama"

@@ -1,10 +1,10 @@
 services:
-  capitalradar:
+  quantconclave:
     build: .
     env_file:
       - .env
     volumes:
-      - capitalradar_data:/home/appuser/.capitalradar
+      - quantconclave_data:/home/appuser/.quantconclave
     tty: true
     stdin_open: true
 
@@ -15,14 +15,14 @@ services:
     profiles:
       - ollama
 
-  capitalradar-ollama:
+  quantconclave-ollama:
     build: .
     env_file:
       - .env
     environment:
       - LLM_PROVIDER=ollama
     volumes:
-      - capitalradar_data:/home/appuser/.capitalradar
+      - quantconclave_data:/home/appuser/.quantconclave
     depends_on:
       - ollama
     tty: true
@@ -31,5 +31,5 @@ services:
       - ollama
 
 volumes:
-  capitalradar_data:
+  quantconclave_data:
   ollama_data:

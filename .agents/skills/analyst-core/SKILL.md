@@ -1,7 +1,7 @@
 ---
-name: capitalradar-analyst-core
+name: quantconclave-analyst-core
 description: >
-  Core analyst skill for the CapitalRadar Advisor — used when running
+  Core analyst skill for the QuantConclave Advisor — used when running
   the deep analysis pipeline (7 analysts + bull/bear debate + risk debate
   + Portfolio Manager). ALL agents in the pipeline reference these
   instructions. Trigger whenever an Advisor or Analyst agent is invoked
@@ -9,22 +9,22 @@ description: >
   involved.
 
   IMPORTANT: This skill MUST be loaded and its rules injected into every
-  CapitalRadar agent's SystemMessage at pipeline initialization. The
-  CapitalRadar Analyst agent reads this file when setting up the graph
-  (capitalradar/graph/trading_graph.py) — the rules here override any
+  QuantConclave agent's SystemMessage at pipeline initialization. The
+  QuantConclave Analyst agent reads this file when setting up the graph
+  (quantconclave/graph/trading_graph.py) — the rules here override any
   agent-specific defaults where they conflict.
 
   Use this skill WHENEVER:
-  - Running a full or partial CapitalRadar analysis pipeline
+  - Running a full or partial QuantConclave analysis pipeline
   - The user asks about institutional capital flow, smart money, or
     main force (主力资金) direction
   - Generating or reviewing a Portfolio Manager's decision
-  - Setting up or debugging agent prompts in the CapitalRadar system
-  - You're working with capitalradar/agents/ directory files
+  - Setting up or debugging agent prompts in the QuantConclave system
+  - You're working with quantconclave/agents/ directory files
 ---
-# CapitalRadar Analyst Core Skill
+# QuantConclave Analyst Core Skill
 
-Core skill for the CapitalRadar Advisor agent system. Every agent in the pipeline — from the Capital Flow analyst to the Portfolio Manager — follows these rules. The skll encodes versioned prompt logic extracted from live backtest and resolved memory logs.
+Core skill for the QuantConclave Advisor agent system. Every agent in the pipeline — from the Capital Flow analyst to the Portfolio Manager — follows these rules. The skll encodes versioned prompt logic extracted from live backtest and resolved memory logs.
 
 ## Core Principles (all agents)
 
@@ -165,4 +165,4 @@ Two-phase agent:
 
 ## Loading Mechanism
 
-This skill file is loaded by `capitalradar/graph/trading_graph.py` at graph initialization. The content between "## Agent Roles" and this section is injected into every agent's SystemMessage in the pipeline. Agents that already have strong domain-specific prompts (like Capital Flow Analyst) receive only the applicable sub-section as a prefix — do NOT override their existing domain logic unless the skill version explicitly updates it.
+This skill file is loaded by `quantconclave/graph/trading_graph.py` at graph initialization. The content between "## Agent Roles" and this section is injected into every agent's SystemMessage in the pipeline. Agents that already have strong domain-specific prompts (like Capital Flow Analyst) receive only the applicable sub-section as a prefix — do NOT override their existing domain logic unless the skill version explicitly updates it.

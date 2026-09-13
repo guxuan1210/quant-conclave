@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from capitalradar.hot_tracker import price_source as ps
+from quantconclave.hot_tracker import price_source as ps
 
 
 @pytest.fixture(autouse=True)

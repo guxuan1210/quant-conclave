@@ -18,7 +18,7 @@ Pure unit test: dataflow / vendor functions are monkeypatched, no network.
 
 from __future__ import annotations
 
-from capitalradar.dataflows.config import get_config
+from quantconclave.dataflows.config import get_config
 
 
 class _Resp:
@@ -47,15 +47,15 @@ _STRATEGY = (
 
 def _apply_mocks(monkeypatch, mf_extra=None):
     monkeypatch.setattr(
-        "capitalradar.sector_scan.rotation.get_rrg_data",
+        "quantconclave.sector_scan.rotation.get_rrg_data",
         lambda *a, **k: {"industries": [{"name": "半导体", "quadrant": "leading"}]},
     )
     monkeypatch.setattr(
-        "capitalradar.sector_scan.smart_scanner.get_industry_stocks",
+        "quantconclave.sector_scan.smart_scanner.get_industry_stocks",
         lambda name: [{"ts_code": "000001.SZ", "symbol": "000001", "name": "平安银行"}],
     )
     monkeypatch.setattr(
-        "capitalradar.sector_scan.smart_money_score.compute_smart_money_score",
+        "quantconclave.sector_scan.smart_money_score.compute_smart_money_score",
         lambda code, cfg: (75.0, {}),
     )
     # get_stock_moneyflow returns 万元 (raw tushare scale). net_5d = 8000万 5-day
@@ -69,11 +69,11 @@ def _apply_mocks(monkeypatch, mf_extra=None):
     if mf_extra:
         mf.update(mf_extra)
     monkeypatch.setattr(
-        "capitalradar.dataflows.eastmoney_sector.get_stock_moneyflow",
+        "quantconclave.dataflows.eastmoney_sector.get_stock_moneyflow",
         lambda code, days=5: mf,
     )
     monkeypatch.setattr(
-        "capitalradar.sector_scan.pick_tracker.record_pick",
+        "quantconclave.sector_scan.pick_tracker.record_pick",
         lambda *a, **k: None,
     )
 

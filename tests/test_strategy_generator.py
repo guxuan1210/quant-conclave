@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from capitalradar.strategy.generator import (
+from quantconclave.strategy.generator import (
     StrategyGenerationError,
     compile_signal,
     generate_strategy_code,
@@ -69,7 +69,7 @@ def test_missing_custom_signal_rejected():
 
 def test_generate_strategy_code_uses_llm(mock_llm_client):
     """generate_strategy_code delegates to create_llm_client and returns code."""
-    from capitalradar.strategy import generator as g
+    from quantconclave.strategy import generator as g
     # Mock the LLM response to return a code block
     mock_llm = mock_llm_client.get_llm.return_value
     mock_llm.invoke.return_value = type("R", (), {"content": f"```python\n{GOOD_CODE}\n```"})()

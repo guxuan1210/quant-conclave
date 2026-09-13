@@ -1,4 +1,4 @@
-"""Generate .docx (Word) reports from CapitalRadar session data. Uses only stdlib."""
+"""Generate .docx (Word) reports from QuantConclave session data. Uses only stdlib."""
 import logging, time, zipfile, io, re, xml.etree.ElementTree as ET
 from datetime import datetime
 
@@ -80,11 +80,11 @@ def generate_docx(session_id: str, session_results: dict | None = None) -> bytes
         return _minimal("No results found for this session. The analysis may still be running or the session has expired.")
 
     body = ET.Element(f"{{{_WML}}}body")
-    _heading(body, "CapitalRadar Analysis Report", 1)
+    _heading(body, "QuantConclave Analysis Report", 1)
     _para(body, f"Ticker: {data.get('ticker','N/A')}    Date: {data.get('date','N/A')}    Rating: {data.get('rating','Hold')}", spacing_after=200)
 
     # ── Analyst Reports ──────────────────────────────────────────────
-    from capitalradar.catalog import ANALYST_ORDER, ANALYST_ROLES
+    from quantconclave.catalog import ANALYST_ORDER, ANALYST_ROLES
     reports = data.get("analyst_reports", {})
     titles = {key: ANALYST_ROLES[key].label for key in ANALYST_ORDER}
     if reports:

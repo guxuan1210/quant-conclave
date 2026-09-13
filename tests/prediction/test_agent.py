@@ -3,12 +3,12 @@ import pytest
 from unittest.mock import MagicMock, patch
 import pandas as pd
 import numpy as np
-from capitalradar.prediction.agent import PredictionAgent
-from capitalradar.prediction.schemas import (
+from quantconclave.prediction.agent import PredictionAgent
+from quantconclave.prediction.schemas import (
     PredictionReport, PriceRangeOutput, DirectionOutput, BehaviorOutput,
     PredictionHorizon, ConfidenceTier, BehaviorPhase, CrossValidationVerdict,
 )
-from capitalradar.prediction.feature_engine import FEATURE_COLUMNS
+from quantconclave.prediction.feature_engine import FEATURE_COLUMNS
 
 
 class TestPredictionAgent:
@@ -21,10 +21,10 @@ class TestPredictionAgent:
     def agent(self):
         return PredictionAgent()
 
-    @patch("capitalradar.prediction.agent.FeatureEngine")
-    @patch("capitalradar.prediction.agent.PricePredictor")
-    @patch("capitalradar.prediction.agent.DirectionPredictor")
-    @patch("capitalradar.prediction.agent.BehaviorPredictor")
+    @patch("quantconclave.prediction.agent.FeatureEngine")
+    @patch("quantconclave.prediction.agent.PricePredictor")
+    @patch("quantconclave.prediction.agent.DirectionPredictor")
+    @patch("quantconclave.prediction.agent.BehaviorPredictor")
     def test_predict_full_pipeline(
         self, mock_beh, mock_dir, mock_price, mock_fe, agent, sample_features,
     ):

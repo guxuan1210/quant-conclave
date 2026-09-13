@@ -20,14 +20,14 @@ from rich import box
 from rich.align import Align
 from rich.rule import Rule
 
-from capitalradar.graph.trading_graph import CapitalRadarGraph
-from capitalradar.graph.analyst_execution import (
+from quantconclave.graph.trading_graph import QuantConclaveGraph
+from quantconclave.graph.analyst_execution import (
     AnalystWallTimeTracker,
     build_analyst_execution_plan,
     get_initial_analyst_node,
     sync_analyst_tracker_from_chunk,
 )
-from capitalradar.default_config import DEFAULT_CONFIG
+from quantconclave.default_config import DEFAULT_CONFIG
 from cli.models import AnalystType
 from cli.utils import *
 from cli.announcements import fetch_announcements, display_announcements
@@ -36,8 +36,8 @@ from cli.stats_handler import StatsCallbackHandler
 console = Console()
 
 app = typer.Typer(
-    name="CapitalRadar",
-    help="CapitalRadar CLI: AI-Powered Institutional Capital Flow Detection for Retail Investors",
+    name="QuantConclave",
+    help="QuantConclave CLI: AI-Powered Institutional Capital Flow Detection for Retail Investors",
     add_completion=True,  # Enable shell completion
 )
 
@@ -263,9 +263,9 @@ def update_display(layout, spinner_text=None, stats_handler=None, start_time=Non
     # Header with welcome message
     layout["header"].update(
         Panel(
-            "[bold green]Welcome to CapitalRadar CLI[/bold green]\n"
+            "[bold green]Welcome to QuantConclave CLI[/bold green]\n"
             "[dim]© [Tauric Research](https://github.com/TauricResearch)[/dim]",
-            title="Welcome to CapitalRadar",
+            title="Welcome to QuantConclave",
             border_style="green",
             padding=(1, 2),
             expand=True,
@@ -474,7 +474,7 @@ def get_user_selections():
 
     # Create welcome box content
     welcome_content = f"{welcome_ascii}\n"
-    welcome_content += "[bold green]CapitalRadar: AI-Powered Institutional Capital Flow Detection - CLI[/bold green]\n\n"
+    welcome_content += "[bold green]QuantConclave: AI-Powered Institutional Capital Flow Detection - CLI[/bold green]\n\n"
     welcome_content += "[bold]Workflow Steps:[/bold]\n"
     welcome_content += "I. Analyst Team → II. Research Team → III. Trader → IV. Risk Management → V. Portfolio Management\n\n"
     welcome_content += (
@@ -486,7 +486,7 @@ def get_user_selections():
         welcome_content,
         border_style="green",
         padding=(1, 2),
-        title="Welcome to CapitalRadar",
+        title="Welcome to QuantConclave",
         subtitle="AI-Powered Institutional Capital Flow Detection for Retail Investors",
     )
     console.print(Align.center(welcome_box))
@@ -844,8 +844,8 @@ def update_research_team_status(status):
 
 
 # Ordered list of analysts for status transitions — single source of truth is
-# capitalradar.catalog.ANALYST_ROLES; these are derived views for the CLI.
-from capitalradar.catalog import ANALYST_ORDER, ANALYST_ROLES
+# quantconclave.catalog.ANALYST_ROLES; these are derived views for the CLI.
+from quantconclave.catalog import ANALYST_ORDER, ANALYST_ROLES
 ANALYST_AGENT_NAMES = {key: role.label for key, role in ANALYST_ROLES.items()}
 ANALYST_REPORT_MAP = {key: role.report_key for key, role in ANALYST_ROLES.items()}
 
@@ -1076,7 +1076,7 @@ def run_analysis(checkpoint: bool = False):
     analyst_wall_time_tracker = AnalystWallTimeTracker(analyst_execution_plan)
 
     # Initialize the graph with callbacks bound to LLMs
-    graph = CapitalRadarGraph(
+    graph = QuantConclaveGraph(
         selected_analyst_keys,
         config=config,
         debug=True,
@@ -1347,7 +1347,7 @@ def analyze(
     ),
 ):
     if clear_checkpoints:
-        from capitalradar.graph.checkpointer import clear_all_checkpoints
+        from quantconclave.graph.checkpointer import clear_all_checkpoints
         n = clear_all_checkpoints(DEFAULT_CONFIG["data_cache_dir"])
         console.print(f"[yellow]Cleared {n} checkpoint(s).[/yellow]")
     run_analysis(checkpoint=checkpoint)

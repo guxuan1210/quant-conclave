@@ -4,9 +4,9 @@ from unittest.mock import MagicMock
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-from capitalradar.prediction.price_predictor import PricePredictor
-from capitalradar.prediction.schemas import PriceRangeOutput, PredictionHorizon, ConfidenceTier
-from capitalradar.prediction.feature_engine import FEATURE_COLUMNS
+from quantconclave.prediction.price_predictor import PricePredictor
+from quantconclave.prediction.schemas import PriceRangeOutput, PredictionHorizon, ConfidenceTier
+from quantconclave.prediction.feature_engine import FEATURE_COLUMNS
 
 
 class TestPricePredictor:

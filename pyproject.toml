@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "capitalradar"
+name = "quantconclave"
 version = "0.2.5"
-description = "CapitalRadar: AI-Powered Institutional Capital Flow Detection for Retail Investors"
+description = "QuantConclave: AI-Powered Institutional Capital Flow Detection for Retail Investors"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -47,10 +47,12 @@ dependencies = [
 ]
 
 [project.scripts]
+quantconclave = "cli.main:app"
+# One-release compatibility alias for the pre-rename CLI command.
 capitalradar = "cli.main:app"
 
 [tool.setuptools.packages.find]
-include = ["capitalradar*", "cli*"]
+include = ["quantconclave*", "capitalradar*", "cli*"]
 
 [tool.setuptools.package-data]
 cli = ["static/*"]
