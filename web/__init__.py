@@ -1,0 +1,1 @@
+"""CapitalRadar Web Dashboard."""

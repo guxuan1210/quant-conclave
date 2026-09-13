@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CapitalRadar Chart</title>
+<script src="/static/lightweight-charts.standalone.production.js"></script>
+<style>
+:root { --bg:#fff; --panel:#f6f8fa; --border:#d0d7de; --text:#1f2328; --muted:#656d76; --accent:#0969da; --red:#cf222e; --green:#1a7f37; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; flex-direction:column; }
+.header { display:flex; align-items:center; gap:12px; padding:10px 20px; background:var(--panel); border-bottom:1px solid var(--border); flex-shrink:0; }
+.header span { font-size:18px; font-weight:700; color:var(--accent); }
+.search-wrap { position:relative; width:220px; }
+.search-wrap input { width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:13px; background:var(--bg); color:var(--text); outline:none; }
+.search-wrap input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(9,105,218,0.15); }
+.search-dropdown { position:absolute; top:100%; left:0; right:0; background:var(--bg); border:1px solid var(--border); border-radius:0 0 6px 6px; max-height:200px; overflow-y:auto; z-index:9999; }
+.search-dropdown.hidden { display:none; }
+.search-dropdown .item { padding:8px 12px; cursor:pointer; display:flex; justify-content:space-between; font-size:12px; border-bottom:1px solid var(--border); }
+.search-dropdown .item:hover { background:var(--panel); }
+.search-dropdown .item .sym { font-weight:700; color:var(--accent); }
+.search-dropdown .item .name { color:var(--text); flex:1; margin:0 8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.search-dropdown .item .exch { color:var(--muted); font-size:10px; }
+.header button { padding:8px 16px; background:var(--accent); color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; }
+.header button:hover { background:#0550ae; }
+.selected-tag { display:flex; align-items:center; gap:6px; padding:4px 10px; background:#ddf4ff; border:1px solid #54aeff; border-radius:4px; font-size:12px; }
+.selected-tag .clear { margin-left:4px; cursor:pointer; color:var(--muted); font-size:14px; }
+.periods { display:flex; gap:4px; margin-left:auto; }
+.periods button { padding:5px 12px; background:var(--bg); border:1px solid var(--border); border-radius:4px; color:var(--muted); font-size:11px; cursor:pointer; }
+.periods button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.periods button:hover:not(.active) { border-color:var(--accent); }
+.chart-area { flex:1; display:flex; flex-direction:column; min-height:0; }
+#chart-kline { flex:3; min-height:0; }
+#chart-volume { flex:1; min-height:0; border-top:1px solid var(--border); }
+#chart-macd { flex:1; min-height:0; border-top:1px solid var(--border); }
+#chart-rsi { flex:1; min-height:0; border-top:1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="header">
+  <span>📈 CapitalRadar Chart</span>
+  <div class="search-wrap">
+    <input type="text" id="ticker-input" placeholder="Search by symbol or name..." autocomplete="off">
+    <div id="search-dropdown" class="search-dropdown"></div>
+  </div>
+  <div id="selected-ticker" class="selected-tag" style="display:none;">
+    <span id="selected-symbol"></span><span id="selected-name" style="color:var(--muted);"></span>
+    <span class="clear" id="clear-ticker">&times;</span>
+  </div>
+  <button id="load-btn">Load</button>
+  <div class="periods">
+    <button data-period="1d">Intraday</button>
+    <button data-period="5d">5-Day</button>
+    <button class="active" data-period="max">Daily</button>
+    <button data-period="weekly">Weekly</button>
+    <button data-period="monthly">Monthly</button>
+  </div>
+</div>
+<div class="chart-area">
+  <div id="chart-kline"></div>
+  <div id="chart-volume"></div>
+  <div id="chart-macd"></div>
+  <div id="chart-rsi"></div>
+</div>
+
+<script>
+var charts = {};
+var currentPeriod = "max";
+var currentTicker = "";
+var selectedStock = null;
+var searchTimer = null;
+
+function cleanup() {
+  Object.values(charts).forEach(function(c) { try { c.remove(); } catch(e) {} });
+  charts = {};
+  document.getElementById("chart-volume").style.display = "";
+  document.getElementById("chart-macd").style.display = "";
+  document.getElementById("chart-rsi").style.display = "";
+}
+
+function chartOpts(h) {
+  return { width: document.getElementById("chart-kline").clientWidth || 1000, height: h, autoSize: true,
+    layout: { background: { type: "solid", color: "#ffffff" }, textColor: "#1f2328" },
+    grid: { vertLines: { color: "#e8eaed" }, horzLines: { color: "#e8eaed" } },
+    crosshair: { mode: 0 },
+    rightPriceScale: { borderColor: "#d0d7de" },
+    timeScale: { borderColor: "#d0d7de" },
+  };
+}
+
+function loadChart(ticker, period) {
+  currentTicker = ticker;
+  cleanup();
+  // Search already returns full ticker with suffix (e.g. 601127.SS)
+  var apiUrl;
+  if (period === "weekly") apiUrl = "/api/history/" + encodeURIComponent(ticker) + "/weekly";
+  else if (period === "monthly") apiUrl = "/api/history/" + encodeURIComponent(ticker) + "/monthly";
+  else apiUrl = "/api/history/" + encodeURIComponent(ticker) + "/indicators?period=" + period;
+
+  fetch(apiUrl).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.error || !data.candles || !data.candles.length) return;
+    render(data.candles);
+  });
+}
+
+function render(candles) {
+  var kd=[], vd=[], mh=[], md=[], me=[], rd=[];
+  candles.forEach(function(c) {
+    kd.push({ time:c.time, open:c.open, high:c.high, low:c.low, close:c.close });
+    vd.push({ time:c.time, value:c.volume, color:c.close>=c.open?"rgba(239,83,80,0.5)":"rgba(38,166,154,0.5)" });
+    if(c.macd!=null) mh.push({ time:c.time, value:c.macd, color:c.macd>=0?"rgba(239,83,80,0.6)":"rgba(38,166,154,0.6)" });
+    if(c.dif!=null) md.push({ time:c.time, value:c.dif });
+    if(c.dea!=null) me.push({ time:c.time, value:c.dea });
+    if(c.rsi!=null) rd.push({ time:c.time, value:c.rsi });
+  });
+
+  var isIntraday = (currentPeriod === "1d" || currentPeriod === "5d");
+  var c1 = LightweightCharts.createChart(document.getElementById("chart-kline"), chartOpts(document.getElementById("chart-kline").clientHeight||400));
+
+  if (isIntraday) {
+    // Line chart for intraday/5d — no candlesticks
+    var lineData = candles.map(function(c){ return {time:c.time, value:c.close}; });
+    c1.addAreaSeries({ lineColor:"#ef5350", topColor:"rgba(239,83,80,0.3)", bottomColor:"rgba(239,83,80,0.02)", lineWidth:2 }).setData(lineData);
+  } else {
+    c1.addCandlestickSeries({ upColor:"#ef5350", downColor:"#26a69a", borderUpColor:"#ef5350", borderDownColor:"#26a69a", wickUpColor:"#ef5350", wickDownColor:"#26a69a" }).setData(kd);
+    var ma5 = candles.filter(function(c){return c.ma5!=null;}).map(function(c){return{time:c.time,value:c.ma5};});
+    var ma20 = candles.filter(function(c){return c.ma20!=null;}).map(function(c){return{time:c.time,value:c.ma20};});
+    if(ma5.length) c1.addLineSeries({ color:"#f5a623", lineWidth:1, lastValueVisible:false }).setData(ma5);
+    if(ma20.length) c1.addLineSeries({ color:"#8250df", lineWidth:1, lastValueVisible:false }).setData(ma20);
+  }
+  c1.timeScale().fitContent();
+  charts.kline = c1;
+
+  // Use K-line time scale for ALL sub-charts to keep dates perfectly aligned.
+  // Bidirectional: main → sub-charts (scroll/zoom on K-line) AND sub → main
+  // (scroll/zoom on volume/MACD/RSI also moves the K-line).
+  var klineTimeScale = c1.timeScale();
+  function rebindTimeScale(chart) {
+    if (!chart) return;
+    chart.timeScale().applyOptions({ visible: false });
+    var fwd = function(range) { if (range) chart.timeScale().setVisibleLogicalRange(range); };
+    var rev = function(range) { if (range) klineTimeScale.setVisibleLogicalRange(range); };
+    klineTimeScale.subscribeVisibleLogicalRangeChange(fwd);   // main → sub
+    chart.timeScale().subscribeVisibleLogicalRangeChange(rev); // sub → main
+    // Initial sync
+    var range = klineTimeScale.getVisibleLogicalRange();
+    if (range) chart.timeScale().setVisibleLogicalRange(range);
+  }
+
+  // Volume
+  var c2 = null;
+  if (!isIntraday && vd.length) {
+    c2 = LightweightCharts.createChart(document.getElementById("chart-volume"), chartOpts(document.getElementById("chart-volume").clientHeight||80));
+    c2.addHistogramSeries({ priceFormat:{type:"volume"} }).setData(vd);
+    rebindTimeScale(c2);
+    charts.vol = c2;
+  } else {
+    document.getElementById("chart-volume").style.display = "none";
+  }
+
+  // MACD
+  var c3 = null;
+  if (!isIntraday && mh.length) {
+    document.getElementById("chart-macd").style.display = "";
+    c3 = LightweightCharts.createChart(document.getElementById("chart-macd"), chartOpts(document.getElementById("chart-macd").clientHeight||80));
+    c3.addHistogramSeries({ priceFormat:{type:"volume"} }).setData(mh);
+    c3.addLineSeries({ color:"#0969da", lineWidth:1, lastValueVisible:false }).setData(md);
+    c3.addLineSeries({ color:"#f0883e", lineWidth:1, lastValueVisible:false }).setData(me);
+    rebindTimeScale(c3);
+    charts.macd = c3;
+  } else if (isIntraday) {
+    document.getElementById("chart-macd").style.display = "none";
+  }
+
+  // RSI
+  var c4 = null;
+  if (!isIntraday && rd.length) {
+    document.getElementById("chart-rsi").style.display = "";
+    c4 = LightweightCharts.createChart(document.getElementById("chart-rsi"), chartOpts(document.getElementById("chart-rsi").clientHeight||60));
+    c4.addLineSeries({ color:"#8250df", lineWidth:1.5, lastValueVisible:false }).setData(rd);
+    c4.addLineSeries({ color:"#d0d7de", lineWidth:1, lineStyle:2, lastValueVisible:false }).setData([{time:rd[0].time,value:70},{time:rd[rd.length-1].time,value:70}]);
+    c4.addLineSeries({ color:"#d0d7de", lineWidth:1, lineStyle:2, lastValueVisible:false }).setData([{time:rd[0].time,value:30},{time:rd[rd.length-1].time,value:30}]);
+    rebindTimeScale(c4);
+    charts.rsi = c4;
+  } else if (isIntraday) {
+    document.getElementById("chart-rsi").style.display = "none";
+  }
+
+}
+
+// Search
+document.getElementById("ticker-input").addEventListener("input", function() {
+  clearTimeout(searchTimer);
+  var q = this.value.trim();
+  if (q.length < 1) { document.getElementById("search-dropdown").classList.add("hidden"); return; }
+  searchTimer = setTimeout(function() {
+    fetch("/api/search?q=" + encodeURIComponent(q))
+      .then(function(r) { return r.json(); })
+      .then(function(items) {
+        var dd = document.getElementById("search-dropdown");
+        if (!items || !items.length) {
+          dd.innerHTML = '<div class="item"><span class="name">No results found</span></div>';
+        } else {
+          dd.innerHTML = items.map(function(r, i) {
+            return '<div class="item" data-idx="'+i+'"><span class="sym">'+esc(r.symbol)+'</span><span class="name">'+esc(r.name)+'</span><span class="exch">'+esc(r.exchange)+'</span></div>';
+          }).join("");
+          dd.querySelectorAll(".item[data-idx]").forEach(function(el) {
+            el.addEventListener("click", function() { selectStock(items[parseInt(el.dataset.idx)]); });
+          });
+        }
+        dd.classList.remove("hidden");
+        dd.style.display = "block";
+      });
+  }, 300);
+});
+
+function selectStock(item) {
+  selectedStock = item;
+  document.getElementById("ticker-input").value = "";
+  document.getElementById("search-dropdown").classList.add("hidden");
+  document.getElementById("selected-symbol").textContent = item.symbol;
+  document.getElementById("selected-name").textContent = (item.name || "").substring(0, 24);
+  document.getElementById("selected-ticker").style.display = "flex";
+  loadChart(item.symbol, currentPeriod);
+}
+
+document.getElementById("clear-ticker").addEventListener("click", function() {
+  selectedStock = null;
+  currentTicker = "";
+  document.getElementById("selected-ticker").style.display = "none";
+  cleanup();
+});
+
+document.getElementById("load-btn").addEventListener("click", function() {
+  var t = document.getElementById("ticker-input").value.trim();
+  if (t) { selectedStock = {symbol: t, name: t, exchange: ""}; loadChart(t, currentPeriod); }
+});
+
+document.addEventListener("click", function(e) {
+  if (!e.target.closest(".search-wrap")) document.getElementById("search-dropdown").classList.add("hidden");
+});
+
+document.querySelectorAll(".periods button").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll(".periods button").forEach(function(b){b.classList.remove("active");});
+    btn.classList.add("active");
+    currentPeriod = btn.dataset.period;
+    if (currentTicker) loadChart(currentTicker, currentPeriod);
+  });
+});
+
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+// Auto-resize
+window.addEventListener("resize", function() {
+  var elMap = {kline:"chart-kline", vol:"chart-volume", macd:"chart-macd", rsi:"chart-rsi"};
+  Object.keys(charts).forEach(function(key) {
+    var el = document.getElementById(elMap[key]);
+    if (el) charts[key].resize(el.clientWidth, el.clientHeight);
+  });
+});
+
+setTimeout(function() {
+  var w = document.getElementById("chart-kline").clientWidth || 1000;
+  var period = w > 1600 ? "max" : (w > 1200 ? "5y" : "3y");
+  // Support ?ticker=xxx&name=yyy so the embedded Chart shows the requested stock
+  var params = new URLSearchParams(location.search);
+  var ticker = params.get("ticker");
+  var name = params.get("name");
+  var p = params.get("period");
+  if (p) period = p;
+  if (ticker) {
+    document.getElementById("selected-symbol").textContent = ticker;
+    document.getElementById("selected-name").textContent = (name || "").substring(0, 30);
+    document.getElementById("selected-ticker").style.display = "flex";
+  }
+  loadChart(ticker || "000001.SZ", period);
+}, 500);
+</script>
+</body>
+</html>

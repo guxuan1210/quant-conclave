@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>短线策略分析 — CapitalRadar</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+<style>
+:root{--bg:#fff;--panel:#f6f8fa;--border:#d0d7de;--txt:#1f2328;--muted:#656d76;--accent:#0969da;--green:#1a7f37;--red:#cf222e;--purple:#8250df;--gold:#9a6700}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--txt);padding:20px;max-width:1300px;margin:0 auto}
+h1{font-size:22px;margin-bottom:4px}
+h2{font-size:15px;margin:16px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--accent)}
+.ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0;padding:10px;background:var(--panel);border:1px solid var(--border);border-radius:8px}
+.ctl label{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+.ctl select,.ctl input{padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--txt)}
+.btn{padding:6px 16px;font-size:12px;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-weight:600}
+.btn.pri{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.llm{background:var(--purple);color:#fff;border-color:var(--purple)}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+.stats{font-size:12px;color:var(--muted);margin:4px 0;min-height:20px}
+.tiles{display:flex;gap:10px;margin:8px 0;flex-wrap:wrap}
+.tile{flex:1;min-width:140px;text-align:center;padding:14px 10px;border-radius:8px;border:2px solid var(--border);background:var(--bg)}
+.tile .num{font-size:24px;font-weight:700}.tile .lbl{font-size:11px;color:var(--muted);margin-top:4px}
+.tile.g{border-color:var(--green);background:#dafbe1}.tile.r{border-color:var(--red);background:#ffebe9}
+.tile.b{border-color:var(--accent);background:#ddf4ff}.tile.y{border-color:var(--gold);background:#fff8c5}
+.row{display:flex;gap:10px;margin:8px 0}
+.box{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px}
+.box h3{font-size:12px;font-weight:600;margin-bottom:6px}
+.box canvas{max-height:300px}
+.tbl{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px;margin-top:10px;font-size:11px;max-height:350px;overflow-y:auto}
+.tbl h3{font-size:12px;font-weight:600;margin-bottom:6px}
+.tbl table{width:100%;border-collapse:collapse}
+.tbl th{background:var(--bg);padding:5px 6px;text-align:left;border-bottom:2px solid var(--border);position:sticky;top:0}
+.tbl td{padding:3px 6px;border-bottom:1px solid var(--border)}
+.tbl tr:hover{background:#f0f7ff}
+.llm-panel{background:linear-gradient(135deg,#f5f0ff,#e8f0fe);border:2px solid var(--purple);border-radius:8px;padding:14px;margin-top:12px;display:none}
+.llm-panel.show{display:block}
+.llm-panel .hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.llm-panel .ttl{font-weight:700;font-size:14px;color:var(--purple)}
+.llm-panel .mod{font-size:10px;color:var(--muted)}
+.llm-content{font-size:13px;line-height:1.8}
+.llm-content h2{font-size:16px;margin:12px 0 6px;border:none}
+.llm-content h3{font-size:14px;margin:10px 0 4px}
+.llm-content table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+.llm-content th{background:var(--panel);padding:4px 8px;text-align:left;border:1px solid var(--border)}
+.llm-content td{padding:3px 8px;border:1px solid var(--border)}
+.llm-content ul,.llm-content ol{margin:6px 0;padding-left:20px}
+.llm-content p{margin:4px 0}
+.llm-content strong{color:var(--txt)}
+</style>
+</head>
+<body>
+<h1>📊 短线策略分析</h1>
+
+<div class="ctl">
+  <label>数据来源:</label>
+  <select id="sa-src"><option value="all">全部 (东方自选+指数选股)</option><option value="mxapi">东方自选</option><option value="csi300">沪深300</option><option value="csi500">中证500</option><option value="csi1000">中证1000</option><option value="gem">创业板指</option><option value="star50">科创50</option><option value="sse50">上证50</option><option value="highdiv">高股息100</option><option value="shanghai">上证A股</option><option value="cycle">周期股100</option><option value="microcap">万得微盘股(868008)</option></select>
+  <label>范围:</label>
+  <select id="sa-days"><option value="latest">最新批次</option><option value="1">今天</option><option value="3">近3天</option><option value="7" selected>近7天</option><option value="30">近30天</option></select>
+  <label>LLM:</label>
+  <select id="sa-provider"><option value="ollama">Ollama(Local)</option><option value="ollama2">Ollama(Local2)</option><option value="deepseek">DeepSeek</option></select>
+  <select id="sa-model" style="width:160px"><option value="qwen3:32b">qwen3:32b</option></select>
+  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="sa-hide-today" checked> 未交易</label>
+  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="sa-exclude-hold" checked> 除观望</label>
+  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="sa-bull-only"> 仅看多</label>
+  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="sa-exclude-cyb"> 除创业</label>
+  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="sa-exclude-kcb"> 除科创</label>
+  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="sa-exclude-bjs"> 除北交</label>
+  <label style="display:flex;align-items:center;gap:4px;font-size:12px;">模型: <select id="sa-model-filter" style="padding:3px 6px;font-size:11px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--txt);"><option value="all">全部模型</option></select></label>
+  <button id="sa-go" class="btn pri">🔄 刷新分析</button>
+  <button id="sa-llm" class="btn llm">🤖 AI深度研判</button>
+</div>
+<div class="stats" id="sa-status"></div>
+
+<!-- 📋 原始策略记录 -->
+<h2>📋 原始策略记录 <span style="font-size:11px;color:var(--muted);font-weight:400;" id="sa-rec-count"></span></h2>
+<div class="tbl" style="max-height:500px;"><table id="sa-records"><thead><tr>
+  <th data-sort="code">代码</th><th data-sort="name">名称</th><th data-sort="verdict">结论</th>
+  <th data-sort="model_name">模型</th><th data-sort="analyzed_at">分析时间</th>
+  <th data-sort="rt_price">分析价</th><th data-sort="current_price">现价</th><th data-sort="return_pct">收益%</th>
+</tr></thead><tbody></tbody></table></div>
+
+<!-- 🤖 模型对比 -->
+<h2>🤖 模型胜率对比</h2>
+<div class="box"><canvas id="ch-model-wr" height="200" style="max-height:250px;"></canvas></div>
+<h2>🤖 模型表现对比</h2>
+<div class="tbl"><table id="sa-model-tbl"><thead><tr><th>模型</th><th>总次数</th><th>胜率</th><th>平均收益</th><th>看多(次/胜率/均益)</th><th>看空(次/胜率/均益)</th></tr></thead><tbody></tbody></table></div>
+
+<!-- 📅 每日分析概览 -->
+<h2>📅 每日分析概览</h2>
+<div class="tbl" style="max-height:400px;"><table id="sa-daily"><thead><tr>
+  <th style="width:20px;"><input type="checkbox" id="sa-daily-all" title="全选/取消" onchange="toggleAllDates(this.checked)"></th>
+  <th>日期</th><th>总数</th><th>🟢看多</th><th>🔴看空</th><th>⚪观望</th><th>看多胜率</th><th>看空胜率</th><th>看多均益</th><th>主要行业</th>
+</tr></thead><tbody></tbody></table></div>
+
+<!-- 🔍 看多信号深度分析 -->
+<h2>🔍 看多信号深度分析</h2>
+<div class="row">
+  <div class="box"><h3>看多信号行业分布</h3><canvas id="ch-bull-sector" height="400" style="max-height:400px;"></canvas></div>
+  <div class="box"><h3>看多信号模型来源</h3><canvas id="ch-bull-model"></canvas></div>
+</div>
+<div class="row">
+  <div class="box" style="flex:2"><h3>看多成功率趋势</h3><canvas id="ch-bull-trend"></canvas></div>
+  <div class="box" style="flex:1"><div class="tiles" id="sa-bull-tiles"></div></div>
+</div>
+
+<!-- 📊 策略评估 -->
+<h2>📊 策略效果评估</h2>
+<div class="tiles" id="sa-tiles"><span style="color:var(--muted);padding:20px">点击"刷新分析"</span></div>
+<div class="row">
+  <div class="box"><h3>收益率分布</h3><canvas id="ch-dist"></canvas></div>
+  <div class="box"><h3>模型表现对比</h3><canvas id="ch-model"></canvas></div>
+</div>
+<div class="tbl"><h3>📋 表现最佳 / 最差股票</h3><div id="sa-stocks"></div></div>
+
+<!-- 🏭 行业板块 -->
+<h2>🏭 行业板块分析</h2>
+<div class="row">
+  <div class="box"><h3>行业平均收益</h3><canvas id="ch-sector"></canvas></div>
+  <div class="box"><h3>行业胜率</h3><canvas id="ch-sector-wr"></canvas></div>
+</div>
+<div class="tbl"><h3>📋 行业详细数据</h3><div id="sa-sector-tbl"></div></div>
+
+<!-- 🌐 宏观视角 -->
+<h2>🌐 宏观视角</h2>
+<div class="row">
+  <div class="box" style="flex:1"><h3>每日平均收益趋势</h3><canvas id="ch-daily"></canvas></div>
+  <div class="box" style="flex:1"><h3>看多/看空/观望比例</h3><canvas id="ch-verdict"></canvas></div>
+</div>
+
+<!-- 🤖 AI -->
+<div class="llm-panel" id="sa-llm-panel">
+  <div class="hdr"><span class="ttl">🤖 AI 综合研判报告</span><span class="mod" id="sa-llm-model"></span></div>
+  <div class="llm-content" id="sa-llm-content"></div>
+</div>
+
+<script src="/static/strategy.js"></script>
+</body>
+</html>

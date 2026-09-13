@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.enterprise
+*.env.local
+
+# User data
+.capitalradar/
+.tradingagents/
+results/
+logs/
+
+# Claude / internal — un-ignore the capitalradar analyst skill
+.claude/
+!.claude/skills/analyst-core/
+__TRACKED_VAR__/
+memory/
+
+# Large assets
+assets/*.png
+assets/*.gif
+assets/cli/
+
+# Superpowers
+.superpowers/
+
+# Temp / debug files
+*.log
+*.bak
+*.bkp
+tmp_git_objects/
+eval-workspace/
+twopass_export.docx
+twopass_export.json
+twopass_export.md
+_*.py
+_*.txt
+_tools/
+_*.bat
+server_*.py
+start_*.py
+start_*.bat
+server_*.log
+web_server.log
+AGENTS.md
+
+# Debug artifacts in web/
+web/_*
+!**/__init__.py
+web/*_orig.py
+web/static/test_*.html
+web/templates/_*.html
+
+# Playwright MCP runtime artifacts (console logs, page snapshots)
+.playwright-mcp/

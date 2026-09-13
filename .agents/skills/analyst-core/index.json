@@ -1,0 +1,161 @@
+{
+  "analyst": {
+    "versions": [
+      {
+        "version": 1,
+        "file": "v1-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 0,
+        "active_exp_count": 0
+      },
+      {
+        "version": 2,
+        "file": "v2-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 0,
+        "active_exp_count": 0
+      },
+      {
+        "version": 3,
+        "file": "v3-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 0,
+        "active_exp_count": 0
+      },
+      {
+        "version": 4,
+        "file": "v4-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 0,
+        "active_exp_count": 0
+      },
+      {
+        "version": 5,
+        "file": "v5-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 0,
+        "active_exp_count": 0
+      },
+      {
+        "version": 6,
+        "file": "v6-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 0,
+        "active_exp_count": 0
+      },
+      {
+        "version": 7,
+        "file": "v7-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 0,
+        "active_exp_count": 0
+      },
+      {
+        "version": 8,
+        "file": "v8-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 3,
+        "active_exp_count": 3
+      },
+      {
+        "version": 9,
+        "file": "v9-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 3,
+        "active_exp_count": 3
+      },
+      {
+        "version": 10,
+        "file": "v10-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 3,
+        "active_exp_count": 3
+      },
+      {
+        "version": 11,
+        "file": "v11-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 3,
+        "active_exp_count": 3
+      },
+      {
+        "version": 12,
+        "file": "v12-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 3,
+        "active_exp_count": 3
+      },
+      {
+        "version": 13,
+        "file": "v13-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 3,
+        "active_exp_count": 3
+      },
+      {
+        "version": 14,
+        "file": "v14-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 3,
+        "active_exp_count": 3
+      },
+      {
+        "version": 15,
+        "file": "v15-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 3,
+        "active_exp_count": 3
+      },
+      {
+        "version": 16,
+        "file": "v16-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 3,
+        "active_exp_count": 3
+      },
+      {
+        "version": 17,
+        "file": "v17-2026-06-30-auto-generated.md",
+        "created": "2026-06-30",
+        "rule_count": 3,
+        "active_exp_count": 3
+      },
+      {
+        "version": 18,
+        "file": "v18-2026-07-01-auto-generated.md",
+        "created": "2026-07-01",
+        "rule_count": 3,
+        "active_exp_count": 3
+      },
+      {
+        "version": 19,
+        "file": "v19-2026-07-01-auto-generated.md",
+        "created": "2026-07-01",
+        "rule_count": 3,
+        "active_exp_count": 3
+      },
+      {
+        "version": 20,
+        "file": "v20-2026-07-01-auto-generated.md",
+        "created": "2026-07-01",
+        "rule_count": 3,
+        "active_exp_count": 3
+      },
+      {
+        "version": 21,
+        "file": "v21-2026-07-01-auto-generated.md",
+        "created": "2026-07-01",
+        "rule_count": 3,
+        "active_exp_count": 3
+      },
+      {
+        "version": 22,
+        "file": "v22-2026-07-01-auto-generated.md",
+        "created": "2026-07-01",
+        "rule_count": 3,
+        "active_exp_count": 3
+      }
+    ],
+    "active_version": 22
+  }
+}

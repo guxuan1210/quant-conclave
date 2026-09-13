@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CapitalRadar 仪表盘</title>
+<link rel="stylesheet" href="/static/style.css?v=3507">
+<style>
+/* === Branding Header === */
+.brand-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #0a1628 0%, #132742 100%);
+  color: #fff;
+  flex-shrink: 0;
+}
+.brand-logo { font-size: 22px; }
+.brand-name { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+.brand-tagline { font-size: 11px; color: #8899aa; margin-left: auto; font-style: italic; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-lang-toggle {
+  margin-left: 10px;
+  flex-shrink: 0;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.ui-lang-toggle:hover { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.55); }
+
+/* === Top Tab Bar === */
+.top-tab-bar {
+  display: flex;
+  gap: 0;
+  background: #e8ecf1;
+  border-bottom: 2px solid #0969da;
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+.top-tab-btn {
+  padding: 12px 18px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  outline: none;
+}
+.top-tab-btn:hover { color: #0969da; background: rgba(9,105,218,0.06); }
+.top-tab-btn.active {
+  color: #0969da;
+  border-bottom-color: #0969da;
+  background: rgba(9,105,218,0.08);
+}
+
+/* === Page Layout === */
+body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+#app { flex: 1; display: flex; min-height: 0; }
+</style>
+<script src="/static/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+
+<!-- ═══ Branding Header ═══ -->
+<div class="brand-header">
+  <span class="brand-logo">🛡️</span>
+  <span class="brand-name">CapitalRadar</span>
+  <span class="brand-tagline" data-i18n="brand.tagline">AI 主力资金流向侦测 — 赋能散户追踪聪明钱足迹</span>
+  <button id="ui-lang-toggle" class="ui-lang-toggle" onclick="window.I18N&&window.I18N.toggle()" title="Switch language / 切换语言">EN</button>
+</div>
+
+<!-- ═══ Top Tab Bar ═══ -->
+<div class="top-tab-bar">
+  <button class="top-tab-btn active" data-tab="analyze" data-i18n="tab.analyze">🔍 深度分析</button>
+  <button class="top-tab-btn" data-tab="history" data-i18n="tab.history">📋 历史智能体</button>
+  <button class="top-tab-btn" data-tab="shortlist" data-i18n="tab.shortlist">⭐ 自选列表</button>
+  <button class="top-tab-btn" data-tab="eastmoney-wl" data-i18n="tab.emwl">📡 东方自选</button>
+  <button class="top-tab-btn" data-tab="index-stocks" data-i18n="tab.idx">📊 指数选股</button>
+  <button class="top-tab-btn" data-tab="scheduled" data-i18n="tab.scheduled">⏰ 定时任务</button>
+  <button class="top-tab-btn" data-tab="rotation" data-i18n="tab.rotation">🔄 轮动监控</button>
+  <button class="top-tab-btn" data-tab="stockpick" data-i18n="tab.stockpick">🎯 选股</button>
+  <button class="top-tab-btn" data-tab="advisory" data-i18n="tab.advisory">💬 顾问智能体</button>
+  <button class="top-tab-btn" data-tab="aipick" data-i18n="tab.aipick">🧠 选股智能体</button>
+  <button class="top-tab-btn" data-tab="prediction" data-i18n="tab.prediction">🔮 预测智能体</button>
+  <button class="top-tab-btn" data-tab="strategy" data-i18n="tab.strategy">📝 策略</button>
+  <button class="top-tab-btn" data-tab="backtest" data-i18n="tab.backtest">📊 回测</button>
+</div>
+
+<div id="app">
+  <!-- Left Panel -->
+  <aside id="left-panel">
+
+    <!-- Analyze Tab -->
+    <div id="tab-analyze" class="tab-content active">
+
+    <!-- PM Role -->
+    <div style="background:linear-gradient(135deg,#f0f7ff,#e8f0fe);border:1px solid #54aeff;border-radius:6px;padding:8px 10px;font-size:11px;color:var(--text);margin-bottom:4px;">
+      <strong data-i18n="pmRole.title">投资组合经理</strong><span data-i18n="pmRole.desc">— 核心决策引擎。综合 7 份分析师报告 + 多空辩论 + 风险评估，给出最终的买入/持有/卖出决策。分析完成后可与 PM 对话。</span>
+    </div>
+
+    <!-- Stock Search -->
+    <div class="section">
+      <label class="label" data-i18n="analyze.ticker">股票代码</label>
+      <div class="search-container">
+        <input type="text" id="ticker-input" data-i18n-ph="analyze.tickerPh" placeholder="按代码或名称搜索..."
+               autocomplete="off">
+        <div id="search-dropdown" class="dropdown hidden"></div>
+      </div>
+      <div id="selected-ticker" class="selected-card hidden">
+        <span id="selected-symbol"></span>
+        <span id="selected-name"></span>
+        <span id="selected-exchange" class="badge"></span>
+        <button type="button" id="clear-ticker" class="clear-btn">&times;</button>
+      </div>
+    </div>
+
+    <!-- Date -->
+    <div class="section">
+      <label class="label" for="date-input" data-i18n="analyze.date">分析日期</label>
+      <input type="text" id="date-input" placeholder="YYYY-MM-DD" value="{{ today }}">
+      <span id="date-error" class="error hidden" data-i18n="analyze.dateErr">日期格式无效</span>
+    </div>
+
+    <!-- Analysts -->
+    <div class="section">
+      <label class="label" data-i18n="analyze.analysts">分析师</label>
+      <div id="analyst-toggles" class="toggle-group">
+        <button type="button" class="toggle active" data-analyst="capital_flow" data-i18n="analyze.capitalFlow">主力资金</button>
+        <button type="button" class="toggle active" data-analyst="market" data-i18n="analyze.market">市场</button>
+        <button type="button" class="toggle active" data-analyst="social" data-i18n="analyze.sentiment">情绪</button>
+        <button type="button" class="toggle active" data-analyst="news" data-i18n="analyze.news">新闻</button>
+        <button type="button" class="toggle active" data-analyst="fundamentals" data-i18n="analyze.fundamentals">基本面</button>
+        <button type="button" class="toggle active" data-analyst="competitor" data-i18n="analyze.competitor">竞争对手</button>
+        <button type="button" class="toggle active" data-analyst="partner" data-i18n="analyze.partner">产业链伙伴</button>
+      </div>
+    </div>
+
+    <!-- Language -->
+    <div class="section">
+      <label class="label" for="language-select" data-i18n="analyze.outputLang">输出语言</label>
+      <select id="language-select" class="lang-select">
+        <option value="English" {% if language == 'English' %}selected{% endif %}>English</option>
+        <option value="Chinese" {% if language == 'Chinese' %}selected{% endif %}>中文</option>
+      </select>
+    </div>
+
+    <!-- LLM Configuration -->
+    <div class="section">
+      <label class="label" for="deep-provider-select" data-i18n="analyze.deepProvider">深度思考供应商</label>
+      <select id="deep-provider-select" class="lang-select">
+        <option value="" data-i18n="common.followDefault">跟随默认 (use .env llm_provider)</option>
+      </select>
+    </div>
+    <div class="section">
+      <label class="label" for="deep-model-select" data-i18n="analyze.deepModel">深度思考模型</label>
+      <div class="model-select-row">
+        <select id="deep-model-select" class="lang-select model-select">
+          <option value="" data-i18n="common.selectProviderFirst">-- 请先选择供应商 --</option>
+        </select>
+        <button type="button" id="refresh-deep-models" class="refresh-btn hidden" data-i18n-title="analyze.refreshModels" title="从 Ollama 刷新模型">&#x21bb;</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <label class="label" for="quick-provider-select" data-i18n="analyze.quickProvider">快速思考供应商</label>
+      <select id="quick-provider-select" class="lang-select">
+        <option value="" data-i18n="common.followDefault">跟随默认 (use .env llm_provider)</option>
+      </select>
+    </div>
+    <div class="section">
+      <label class="label" for="quick-model-select" data-i18n="analyze.quickModel">快速思考模型</label>
+      <div class="model-select-row">
+        <select id="quick-model-select" class="lang-select model-select">
+          <option value="" data-i18n="common.selectProviderFirst">-- 请先选择供应商 --</option>
+        </select>
+        <button type="button" id="refresh-quick-models" class="refresh-btn hidden" data-i18n-title="analyze.refreshModels" title="从 Ollama 刷新模型">&#x21bb;</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <label class="label" for="proxy-url-input" data-i18n="analyze.proxyUrl">HTTP 代理地址</label>
+      <input type="text" id="proxy-url-input" class="url-input"
+             data-i18n-ph="analyze.proxyPh" placeholder="http://127.0.0.1:7897 (Clash 默认)">
+    </div>
+
+    <div class="section">
+      <label class="label" for="backend-url-input" data-i18n="analyze.backendUrl">API 基础地址（可选）</label>
+      <input type="text" id="backend-url-input" class="url-input"
+             data-i18n-ph="analyze.backendPh" placeholder="自动根据供应商检测" value="{{ backend_url }}">
+    </div>
+
+    <!-- Human-in-the-Loop Checkpoints -->
+    <div class="section">
+      <label class="label" data-i18n="analyze.checkpoints">交互检查点</label>
+      <div class="checkpoint-toggles">
+        <div class="checkpoint-row">
+          <span class="checkpoint-label" data-i18n="analyze.cpAfterRM">研究经理之后</span>
+          <label class="switch">
+            <input type="checkbox" id="checkpoint-1-toggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+        <div class="checkpoint-row">
+          <span class="checkpoint-label" data-i18n="analyze.cpAfterPM">投资组合经理之后</span>
+          <label class="switch">
+            <input type="checkbox" id="checkpoint-2-toggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="section">
+      <button type="button" id="run-btn" class="btn primary" disabled data-i18n="analyze.run">运行分析</button>
+      <button type="button" id="reset-btn" class="btn secondary" data-i18n="analyze.reset">重置</button>
+    </div>
+
+    <!-- Pipeline Progress -->
+    <div class="section">
+      <label class="label" data-i18n="analyze.progress">管线进度</label>
+      <div id="progress-list">
+        <div class="progress-item" data-stage="analysts">
+          <span class="stage-icon">◌</span>
+          <span class="stage-label" data-i18n="analyze.analystTeam">分析师团队</span>
+          <span class="stage-time"></span>
+          <div class="progress-bar"><div class="progress-bar-fill"></div></div>
+          <div class="analyst-sub-progress" style="padding-left:0;font-size:11px;margin-top:4px;">
+            <div class="progress-item" data-analyst="capital_flow" style="display:flex;gap:4px;align-items:center;padding:2px 0;padding-left:24px;">
+              <span class="stage-icon" style="font-size:10px;">◌</span>
+              <span class="stage-label" style="font-size:11px;" data-i18n="analyze.capitalFlow">主力资金</span>
+              <span class="stage-time" style="font-size:10px;"></span>
+            </div>
+            <div class="progress-item" data-analyst="market" style="display:flex;gap:4px;align-items:center;padding:2px 0;padding-left:24px;">
+              <span class="stage-icon" style="font-size:10px;">◌</span>
+              <span class="stage-label" style="font-size:11px;" data-i18n="analyze.market">市场</span>
+              <span class="stage-time" style="font-size:10px;"></span>
+            </div>
+            <div class="progress-item" data-analyst="social" style="display:flex;gap:4px;align-items:center;padding:2px 0;padding-left:24px;">
+              <span class="stage-icon" style="font-size:10px;">◌</span>
+              <span class="stage-label" style="font-size:11px;" data-i18n="analyze.sentiment">情绪</span>
+              <span class="stage-time" style="font-size:10px;"></span>
+            </div>
+            <div class="progress-item" data-analyst="news" style="display:flex;gap:4px;align-items:center;padding:2px 0;padding-left:24px;">
+              <span class="stage-icon" style="font-size:10px;">◌</span>
+              <span class="stage-label" style="font-size:11px;" data-i18n="analyze.news">新闻</span>
+              <span class="stage-time" style="font-size:10px;"></span>
+            </div>
+            <div class="progress-item" data-analyst="fundamentals" style="display:flex;gap:4px;align-items:center;padding:2px 0;padding-left:24px;">
+              <span class="stage-icon" style="font-size:10px;">◌</span>
+              <span class="stage-label" style="font-size:11px;" data-i18n="analyze.fundamentals">基本面</span>
+              <span class="stage-time" style="font-size:10px;"></span>
+            </div>
+            <div class="progress-item" data-analyst="competitor" style="display:flex;gap:4px;align-items:center;padding:2px 0;padding-left:24px;">
+              <span class="stage-icon" style="font-size:10px;">◌</span>
+              <span class="stage-label" style="font-size:11px;" data-i18n="analyze.competitor">竞争对手</span>
+              <span class="stage-time" style="font-size:10px;"></span>
+            </div>
+            <div class="progress-item" data-analyst="partner" style="display:flex;gap:4px;align-items:center;padding:2px 0;padding-left:24px;">
+              <span class="stage-icon" style="font-size:10px;">◌</span>
+              <span class="stage-label" style="font-size:11px;" data-i18n="analyze.partner">产业链伙伴</span>
+              <span class="stage-time" style="font-size:10px;"></span>
+            </div>
+          </div>
+        </div>
+        <div class="progress-item" data-stage="research">
+          <span class="stage-icon">◌</span>
+          <span class="stage-label" data-i18n="analyze.researchDebate">研究辩论</span>
+          <span class="stage-time"></span>
+        </div>
+        <div class="progress-item" data-stage="trader">
+          <span class="stage-icon">◌</span>
+          <span class="stage-label" data-i18n="analyze.trader">交易员</span>
+          <span class="stage-time"></span>
+        </div>
+        <div class="progress-item" data-stage="risk">
+          <span class="stage-icon">◌</span>
+          <span class="stage-label" data-i18n="analyze.riskMgmt">风险管理</span>
+          <span class="stage-time"></span>
+        </div>
+        <div class="progress-item" data-stage="portfolio">
+          <span class="stage-icon">◌</span>
+          <span class="stage-label" data-i18n="analyze.portfolioMgr">投资组合经理</span>
+          <span class="stage-time"></span>
+        </div>
+      </div>
+    </div>
+    </div><!-- /tab-analyze -->
+
+    <!-- History Tab -->
+    <div id="tab-history" class="tab-content">
+      <div style="margin-bottom:12px;">
+        <label class="label" data-i18n="hist.pastAnalyses">历史分析</label>
+        <p style="font-size:11px;color:var(--text-muted);margin:4px 0;" data-i18n="hist.desc">浏览已完成的分析 — 评级、分析师报告和最终交易决策。</p>
+      </div>
+      <div id="history-summary" style="display:flex;gap:12px;margin-bottom:12px;font-size:12px;"></div>
+      <div class="section">
+        <label class="label" data-i18n="hist.filter">筛选</label>
+        <div class="history-filters">
+          <input type="text" id="hist-ticker" class="history-filter" data-i18n-ph="hist.tickerPh" placeholder="代码" style="width:70px">
+          <input type="text" id="hist-date-from" class="history-filter" data-i18n-ph="hist.fromDate" placeholder="起始日期" style="width:90px">
+          <input type="text" id="hist-date-to" class="history-filter" data-i18n-ph="hist.toDate" placeholder="结束日期" style="width:90px">
+          <select id="hist-rating" class="history-filter" style="width:90px">
+            <option value="" data-i18n="hist.allRatings">全部评级</option>
+            <option value="Buy" data-i18n="hist.ratingBuy">买入</option>
+            <option value="Overweight" data-i18n="hist.ratingOverweight">增持</option>
+            <option value="Hold" data-i18n="hist.ratingHold">持有</option>
+            <option value="Underweight" data-i18n="hist.ratingUnderweight">减持</option>
+            <option value="Sell" data-i18n="hist.ratingSell">卖出</option>
+          </select>
+          <button id="hist-refresh" class="btn secondary" style="padding:6px 12px;font-size:12px;" data-i18n="hist.refresh">刷新</button>
+          <button id="hist-view-time" class="btn secondary" style="padding:4px 8px;font-size:11px;background:var(--accent);color:#fff;" data-i18n="hist.byTime">按时间</button>
+          <button id="hist-view-company" class="btn secondary" style="padding:4px 8px;font-size:11px;" data-i18n="hist.byCompany">按公司</button>
+        </div>
+      </div>
+      <div id="ha-actions" style="display:flex;gap:6px;margin-bottom:8px;">
+        <button id="ha-analyze-btn" class="btn primary" style="flex:1;padding:8px 12px;font-size:12px;" data-i18n="hist.analyzeAll">🔍 分析全部</button>
+        <button id="ha-analyze-selected-btn" class="btn secondary" style="flex:1;padding:8px 12px;font-size:12px;" data-i18n="hist.analyzeSelected">🔍 分析所选</button>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div id="history-list" class="history-list">
+            <span class="no-results" data-i18n="hist.noResults">点击刷新加载历史</span>
+          </div>
+          <div id='history-detail-container' class='hidden' style='flex:2;overflow-y:auto;'></div>
+        </div>
+      </div>
+      <div id="compare-bar" class="compare-bar hidden">
+        <button id="compare-btn" class="btn primary" style="padding:6px 14px;font-size:12px;" data-i18n="hist.compare">比较</button>
+        <button id="chat-pm-btn" class="btn purple" style="padding:6px 14px;font-size:12px;" data-i18n="hist.chatPm">与 PM 对话</button>
+        <span id="compare-count" style="font-size:12px;color:var(--text-muted);"></span>
+      </div>
+    </div><!-- /tab-history -->
+
+    <!-- Shortlist Tab -->
+    <div id="tab-shortlist" class="tab-content">
+      <div class="section">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <label class="label" data-i18n="shortlist.title">待深入分析的自选股</label>
+          <button id="clear-shortlist-btn" class="btn secondary" style="padding:4px 8px;font-size:11px;color:var(--red);" data-i18n="shortlist.clearAll">清空</button>
+        </div>
+        <!-- Manual Add -->
+        <div style="display:flex;gap:4px;margin:8px 0;">
+          <input type="text" id="shortlist-add-input" data-i18n-ph="shortlist.addPh" placeholder="输入代码添加, e.g. 601939 or 601939.SH" style="flex:1;font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:3px;">
+          <button id="shortlist-add-btn" class="btn primary" style="font-size:11px;padding:4px 10px;" data-i18n="shortlist.add">添加</button>
+          <span id="shortlist-add-status" style="font-size:10px;color:var(--text-muted);line-height:28px;"></span>
+        </div>
+        <div id="shortlist-list" class="shortlist-list">
+          <span class="no-results" data-i18n="shortlist.loading">加载自选股中...</span>
+        </div>
+        <div class="shortlist-actions hidden" id="shortlist-actions">
+          <button id="shortlist-analyze-all" class="btn primary" style="padding:6px 12px;font-size:12px;width:100%;" data-i18n="shortlist.analyzeAll">
+            管线分析全部
+          </button>
+        </div>
+      </div>
+      <!-- Validation Panel (right side) -->
+      <div id="shortlist-validate-panel" class="hidden" style="margin-top:12px;padding:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span id="shortlist-validate-title" style="font-weight:600;font-size:13px;"></span>
+          <button id="shortlist-validate-close" class="btn secondary" style="font-size:10px;padding:2px 6px;">&times;</button>
+        </div>
+        <div id="shortlist-validate-body" style="font-size:12px;line-height:1.8;"></div>
+      </div>
+    </div><!-- /tab-shortlist -->
+
+    <!-- Eastmoney Watchlist Tab -->
+    <div id="tab-eastmoney-wl" class="tab-content">
+      <div class="section">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <label class="label" data-i18n="emwl.title">📡 东方自选</label>
+          <div style="display:flex;gap:4px;">
+            <button id="emwl-refresh-btn" class="btn primary" style="padding:4px 10px;font-size:11px;" data-i18n="emwl.sync">🔄 同步</button>
+            <button id="emwl-batch-sel-btn" class="btn primary" style="padding:4px 10px;font-size:11px;background:#6f42c1;" data-i18n="emwl.batchSel">☑ 分析选中</button>
+            <button id="emwl-batch-btn" class="btn primary" style="padding:4px 10px;font-size:11px;background:var(--accent);" data-i18n="emwl.batchNew">📊 分析新</button>
+            <button id="emwl-resume-btn" class="btn secondary" style="padding:4px 10px;font-size:11px;" data-i18n="emwl.resume">▶ 继续</button>
+            <button id="emwl-redo-btn" class="btn secondary" style="padding:4px 10px;font-size:11px;" data-i18n="emwl.redo">🔄 全重析</button>
+            <select id="emwl-twopass-verdict" style="font-size:10px;padding:3px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);"><option value="看多" selected data-i18n="verdict.bull">看多</option><option value="看空" data-i18n="verdict.bear">看空</option><option value="观望" data-i18n="verdict.hold">观望</option></select><button id="emwl-twopass-btn" class="btn primary" style="padding:4px 10px;font-size:11px;background:#1a7f37;" data-i18n="emwl.twopass">🔬 二次分析</button><select id="emwl-export-model" style="font-size:10px;padding:3px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);"><option value="" data-i18n="emwl.allModels">全部模型</option></select><button id="emwl-export-btn" class="btn secondary" style="padding:4px 8px;font-size:10px;" data-i18n="emwl.export" data-i18n-title="emwl.exportTitle" title="导出所选模型的最后一批分析结果">📥 导出</button>
+          </div>
+        </div>
+        <!-- LLM Model Selector -->
+        <div style="display:flex;gap:4px;align-items:center;margin:4px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.modelLabel" data-i18n-params='{"n":1}'>🤖 模型1:</span>
+          <select id="emwl-provider-select" style="flex:1;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultProvider">默认</option>
+          </select>
+          <select id="emwl-model-select" style="flex:2;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultModel">默认模型</option>
+          </select>
+          <button id="emwl-refresh-models" class="btn secondary" style="font-size:10px;padding:2px 6px;" data-i18n-title="common.refreshModelList" title="刷新模型列表">🔄</button>
+          <label style="display:flex;align-items:center;gap:2px;cursor:pointer;white-space:nowrap;font-size:10px;color:var(--text-muted);">
+            <input type="checkbox" id="emwl-dual-toggle" onchange="toggleEmwlDualModel()"> 2
+            <input type="checkbox" id="emwl-tri-toggle" onchange="toggleEmwlTriModel()"> 3
+            <input type="checkbox" id="emwl-quad-toggle" onchange="toggleEmwlQuadModel()"> 4
+            <input type="checkbox" id="emwl-penta-toggle" onchange="toggleEmwlPentaModel()"> 5
+            <input type="checkbox" id="emwl-hexa-toggle" onchange="toggleEmwlHexaModel()"> 6
+            <input type="checkbox" id="emwl-hepta-toggle" onchange="toggleEmwlHeptaModel()"> 7
+            <input type="checkbox" id="emwl-octa-toggle" onchange="toggleEmwlOctaModel()"> 8
+          </label>
+        </div>
+        <!-- Second LLM Model Selector (hidden until checkbox checked) -->
+        <div id="emwl-model2-row" style="display:none;gap:4px;align-items:center;margin:2px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.modelLabel" data-i18n-params='{"n":2}'>🤖 模型2:</span>
+          <select id="emwl-provider2-select" style="flex:1;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultProvider">默认</option>
+          </select>
+          <select id="emwl-model2-select" style="flex:2;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultModel">默认模型</option>
+          </select>
+        </div>
+        <div id="emwl-model3-row" style="display:none;gap:4px;align-items:center;margin:2px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.modelLabel" data-i18n-params='{"n":3}'>🤖 模型3:</span>
+          <select id="emwl-provider3-select" style="flex:1;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultProvider">默认</option>
+          </select>
+          <select id="emwl-model3-select" style="flex:2;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultModel">默认模型</option>
+          </select>
+        </div>
+        <div id="emwl-model4-row" style="display:none;gap:4px;align-items:center;margin:2px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.modelLabel" data-i18n-params='{"n":4}'>🤖 模型4:</span>
+          <select id="emwl-provider4-select" style="flex:1;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultProvider">默认</option>
+          </select>
+          <select id="emwl-model4-select" style="flex:2;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultModel">默认模型</option>
+          </select>
+        </div>
+        <div id="emwl-model5-row" style="display:none;gap:4px;align-items:center;margin:2px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.modelLabel" data-i18n-params='{"n":5}'>🤖 模型5:</span>
+          <select id="emwl-provider5-select" style="flex:1;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultProvider">默认</option>
+          </select>
+          <select id="emwl-model5-select" style="flex:2;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultModel">默认模型</option>
+          </select>
+        </div>
+        <div id="emwl-model6-row" style="display:none;gap:4px;align-items:center;margin:2px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.modelLabel" data-i18n-params='{"n":6}'>🤖 模型6:</span>
+          <select id="emwl-provider6-select" style="flex:1;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultProvider">默认</option>
+          </select>
+          <select id="emwl-model6-select" style="flex:2;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultModel">默认模型</option>
+          </select>
+        </div>
+        <div id="emwl-model7-row" style="display:none;gap:4px;align-items:center;margin:2px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.modelLabel" data-i18n-params='{"n":7}'>🤖 模型7:</span>
+          <select id="emwl-provider7-select" style="flex:1;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultProvider">默认</option>
+          </select>
+          <select id="emwl-model7-select" style="flex:2;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultModel">默认模型</option>
+          </select>
+        </div>
+        <div id="emwl-model8-row" style="display:none;gap:4px;align-items:center;margin:2px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.modelLabel" data-i18n-params='{"n":8}'>🤖 模型8:</span>
+          <select id="emwl-provider8-select" style="flex:1;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultProvider">默认</option>
+          </select>
+          <select id="emwl-model8-select" style="flex:2;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultModel">默认模型</option>
+          </select>
+        </div>
+        <div id="emwl-status" style="font-size:10px;color:var(--text-muted);margin:4px 0;"></div>
+        <!-- Board filter -->
+        <div style="display:flex;gap:4px;align-items:center;margin:4px 0;font-size:10px;" id="emwl-board-filter">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="emwl.batchRange">🎯 批量范围:</span>
+          <label style="cursor:pointer;white-space:nowrap;"><input type="checkbox" class="emwl-board-toggle" data-board="cyb" checked> <span data-i18n="common.boardCyb">创业板</span></label>
+          <label style="cursor:pointer;white-space:nowrap;"><input type="checkbox" class="emwl-board-toggle" data-board="kcb" checked> <span data-i18n="common.boardKcb">科创板</span></label>
+          <label style="cursor:pointer;white-space:nowrap;"><input type="checkbox" class="emwl-board-toggle" data-board="bjs" checked> <span data-i18n="common.boardBjs">北交所</span></label>
+          <span style="color:var(--text-muted);" data-i18n="common.boardHint">(取消勾选=批量时跳过该板块)</span>
+        </div>
+        <!-- 涨跌幅 filter (batch only) -->
+        <div style="display:flex;gap:4px;align-items:center;margin:2px 0 4px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.changePct">📈 涨跌幅:</span>
+          <label style="cursor:pointer;white-space:nowrap;" data-i18n-title="common.changeOnlyTitle" title="勾选后，批量分析只处理当日涨幅大于设定值的股票">
+            <input type="checkbox" id="emwl-change-toggle"> <span data-i18n="common.changeOnly">仅分析涨幅 ></span>
+          </label>
+          <input type="number" id="emwl-change-value" value="0" step="0.1" style="width:52px;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+          <span style="color:var(--text-muted);" data-i18n="common.changeStocks">% 的股票</span>
+        </div>
+        <!-- Search + Manual Add -->
+        <div style="display:flex;gap:4px;margin:6px 0;">
+          <div style="flex:1;position:relative;">
+            <input type="text" id="emwl-search-input" data-i18n-ph="emwl.searchPh" placeholder="🔍 搜索代码/名称..." style="width:100%;font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:3px;box-sizing:border-box;" autocomplete="off">
+            <div id="emwl-search-dropdown" class="dropdown hidden" style="position:absolute;top:100%;left:0;right:0;z-index:10;"></div>
+          </div>
+          <div style="flex:1;position:relative;">
+            <input type="text" id="emwl-add-input" data-i18n-ph="emwl.addPh" placeholder="添加代码, e.g. 000001" style="width:100%;font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:3px;box-sizing:border-box;" autocomplete="off">
+            <div id="emwl-add-dropdown" class="dropdown hidden" style="position:absolute;top:100%;left:0;right:0;z-index:10;"></div>
+          </div>
+          <button id="emwl-add-btn" class="btn primary" style="font-size:11px;padding:4px 10px;" data-i18n="common.add">添加</button>
+          <button id="emwl-upload-btn" class="btn secondary" style="font-size:10px;padding:4px 6px;white-space:nowrap;" data-i18n="emwl.upload" data-i18n-title="emwl.uploadTitle" title="上传本地新增至东方财富">⬆ 上传</button>
+        </div>
+        <div id="emwl-add-status" style="font-size:10px;color:var(--text-muted);margin-bottom:4px;display:none;"></div>
+        <div id="emwl-list" style="max-height:500px;overflow-y:auto;font-size:11px;">
+          <span class="no-results" data-i18n="emwl.empty">点击"同步自选"加载东方财富自选股...</span>
+        </div>
+        <!-- Analysis Panel -->
+        <div id="emwl-analysis-panel" class="hidden" style="margin-top:8px;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span id="emwl-analysis-title" style="font-weight:600;font-size:12px;"></span>
+            <button id="emwl-analysis-close" class="btn secondary" style="font-size:10px;padding:2px 6px;">&times;</button>
+          </div>
+          <div id="emwl-analysis-body" style="font-size:11px;line-height:1.7;"></div>
+        </div>
+
+        <!-- Position / Portfolio Section -->
+        <div style="margin-top:12px;border-top:2px solid var(--accent);padding-top:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <label class="label" data-i18n="pos.title">📋 持仓管理</label>
+            <div style="display:flex;gap:4px;">
+              <button id="pos-sync-btn" class="btn secondary" style="padding:3px 8px;font-size:10px;" data-i18n="emwl.syncPositions" data-i18n-title="pos.syncTitle" title="尝试从东方财富同步持仓">🔄 同步持仓</button>
+              <button id="pos-add-btn" class="btn primary" style="padding:3px 8px;font-size:10px;" data-i18n="pos.add">+ 录入</button>
+            </div>
+          </div>
+          <!-- Add Position Form -->
+          <div id="pos-form" class="hidden" style="margin:6px 0;padding:8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);">
+            <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:flex-end;">
+              <div><span style="font-size:9px;color:var(--text-muted);" data-i18n="pos.ticker">代码</span><br><input id="pos-ticker-input" placeholder="000001" style="width:70px;font-size:10px;padding:3px 4px;"></div>
+              <div><span style="font-size:9px;color:var(--text-muted);" data-i18n="pos.shares">股数</span><br><input id="pos-shares-input" type="number" placeholder="1000" style="width:60px;font-size:10px;padding:3px 4px;"></div>
+              <div><span style="font-size:9px;color:var(--text-muted);" data-i18n="pos.cost">成本价</span><br><input id="pos-cost-input" type="number" step="0.01" placeholder="10.50" style="width:70px;font-size:10px;padding:3px 4px;"></div>
+              <div><span style="font-size:9px;color:var(--text-muted);" data-i18n="pos.date">日期</span><br><input id="pos-date-input" style="width:80px;font-size:10px;padding:3px 4px;" placeholder="2026-01-01"></div>
+              <button id="pos-save-btn" class="btn primary" style="font-size:10px;padding:4px 10px;height:24px;" data-i18n="pos.save">保存</button>
+              <button id="pos-cancel-btn" class="btn secondary" style="font-size:10px;padding:4px 8px;height:24px;" data-i18n="pos.cancel">取消</button>
+            </div>
+          </div>
+          <!-- Position Summary -->
+          <div id="pos-summary" style="font-size:10px;color:var(--text-muted);margin:4px 0;display:none;"></div>
+          <!-- Position List -->
+          <div id="pos-list" style="max-height:220px;overflow-y:auto;font-size:10px;">
+            <span class="no-results" style="font-size:10px;" data-i18n="pos.empty">点击"+ 录入"添加持仓，或"同步持仓"从东方财富获取</span>
+          </div>
+        </div>
+      </div>
+    </div><!-- /tab-eastmoney-wl -->
+
+    <!-- Index Stocks Tab (CSI 300) -->
+    <div id="tab-index-stocks" class="tab-content">
+      <div class="section">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <label class="label" data-i18n="idx.title">📊 指数选股</label>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <select id="idx-select" style="font-size:10px;padding:3px 6px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+              <option value="csi300" data-i18n="idx.name.csi300">沪深300</option>
+              <option value="csi500" data-i18n="idx.name.csi500">中证500</option>
+              <option value="csi1000" data-i18n="idx.name.csi1000">中证1000</option>
+              <option value="gem" data-i18n="idx.name.gem">创业板指</option>
+              <option value="star50" data-i18n="idx.name.star50">科创50</option>
+              <option value="sse50" data-i18n="idx.name.sse50">上证50</option>
+              <option value="highdiv" data-i18n="idx.name.highdiv">高股息100</option>
+              <option value="shanghai" data-i18n="idx.name.shanghai">上证A股</option>
+              <option value="cycle" data-i18n="idx.name.cycle">周期股100</option>
+              <option value="microcap" data-i18n="idx.name.microcap">万得微盘股(868008)</option>
+            </select>
+            <button id="idx-refresh-btn" class="btn primary" style="padding:4px 10px;font-size:11px;" data-i18n="idx.refresh">🔄 刷新</button>
+            <button id="idx-full-refresh-btn" class="btn secondary" style="padding:4px 8px;font-size:9px;" data-i18n="idx.updateConstituents" data-i18n-title="idx.updateConstTitle" title="从tushare重新获取成分股列表（较慢）">📋 更新成分</button>
+            <button id="idx-batch-sel-btn" class="btn primary" style="padding:4px 10px;font-size:11px;background:#6f42c1;" data-i18n="idx.batchSel">☑ 分析选中</button>
+            <button id="idx-batch-btn" class="btn primary" style="padding:4px 10px;font-size:11px;background:var(--accent);" data-i18n="idx.batchNew">📊 分析新</button>
+            <button id="idx-resume-btn" class="btn secondary" style="padding:4px 10px;font-size:11px;" data-i18n="idx.resume">▶ 继续</button>
+            <button id="idx-redo-btn" class="btn secondary" style="padding:4px 10px;font-size:11px;" data-i18n="idx.redo">🔄 全重析</button>
+            <select id="idx-twopass-verdict" style="font-size:10px;padding:3px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);"><option value="看多" selected data-i18n="verdict.bull">看多</option><option value="看空" data-i18n="verdict.bear">看空</option><option value="观望" data-i18n="verdict.hold">观望</option></select><button id="idx-twopass-btn" class="btn primary" style="padding:4px 10px;font-size:11px;background:#1a7f37;" data-i18n="idx.twopass">🔬 二次分析</button><select id="idx-export-model" style="font-size:10px;padding:3px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);"><option value="" data-i18n="idx.allModels">全部模型</option></select><button id="idx-export-btn" class="btn secondary" style="padding:4px 8px;font-size:10px;" data-i18n="idx.export" data-i18n-title="emwl.exportTitle" title="导出所选模型的最后一批分析结果">📥 导出</button>
+          </div>
+        </div>
+        <!-- LLM Model Selector -->
+        <div style="display:flex;gap:4px;align-items:center;margin:4px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.modelLabel" data-i18n-params='{"n":1}'>🤖 模型1:</span>
+          <select id="idx-provider-select" style="flex:1;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultProvider">默认</option>
+          </select>
+          <select id="idx-model-select" style="flex:2;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultModel">默认模型</option>
+          </select>
+          <button id="idx-refresh-models" class="btn secondary" style="font-size:10px;padding:2px 6px;" data-i18n-title="common.refreshModelList" title="刷新模型列表">🔄</button>
+          <label style="display:flex;align-items:center;gap:2px;cursor:pointer;white-space:nowrap;font-size:10px;color:var(--text-muted);">
+            <input type="checkbox" id="idx-dual-toggle" onchange="toggleIdxDualModel()"> 2
+            <input type="checkbox" id="idx-tri-toggle" onchange="toggleIdxTriModel()"> 3
+            <input type="checkbox" id="idx-quad-toggle" onchange="toggleIdxQuadModel()"> 4
+            <input type="checkbox" id="idx-penta-toggle" onchange="toggleIdxPentaModel()"> 5
+            <input type="checkbox" id="idx-hexa-toggle" onchange="toggleIdxHexaModel()"> 6
+            <input type="checkbox" id="idx-hepta-toggle" onchange="toggleIdxHeptaModel()"> 7
+            <input type="checkbox" id="idx-octa-toggle" onchange="toggleIdxOctaModel()"> 8
+          </label>
+        </div>
+        <!-- Second LLM Model Selector (hidden until checkbox checked) -->
+        <div id="idx-model2-row" style="display:none;gap:4px;align-items:center;margin:2px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.modelLabel" data-i18n-params='{"n":2}'>🤖 模型2:</span>
+          <select id="idx-provider2-select" style="flex:1;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultProvider">默认</option>
+          </select>
+          <select id="idx-model2-select" style="flex:2;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultModel">默认模型</option>
+          </select>
+        </div>
+        <div id="idx-model3-row" style="display:none;gap:4px;align-items:center;margin:2px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.modelLabel" data-i18n-params='{"n":3}'>🤖 模型3:</span>
+          <select id="idx-provider3-select" style="flex:1;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultProvider">默认</option>
+          </select>
+          <select id="idx-model3-select" style="flex:2;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultModel">默认模型</option>
+          </select>
+        </div>
+        <div id="idx-model4-row" style="display:none;gap:4px;align-items:center;margin:2px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.modelLabel" data-i18n-params='{"n":4}'>🤖 模型4:</span>
+          <select id="idx-provider4-select" style="flex:1;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultProvider">默认</option>
+          </select>
+          <select id="idx-model4-select" style="flex:2;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultModel">默认模型</option>
+          </select>
+        </div>
+        <div id="idx-model5-row" style="display:none;gap:4px;align-items:center;margin:2px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.modelLabel" data-i18n-params='{"n":5}'>🤖 模型5:</span>
+          <select id="idx-provider5-select" style="flex:1;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultProvider">默认</option>
+          </select>
+          <select id="idx-model5-select" style="flex:2;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultModel">默认模型</option>
+          </select>
+        </div>
+        <div id="idx-model6-row" style="display:none;gap:4px;align-items:center;margin:2px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.modelLabel" data-i18n-params='{"n":6}'>🤖 模型6:</span>
+          <select id="idx-provider6-select" style="flex:1;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultProvider">默认</option>
+          </select>
+          <select id="idx-model6-select" style="flex:2;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultModel">默认模型</option>
+          </select>
+        </div>
+        <div id="idx-model7-row" style="display:none;gap:4px;align-items:center;margin:2px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.modelLabel" data-i18n-params='{"n":7}'>🤖 模型7:</span>
+          <select id="idx-provider7-select" style="flex:1;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultProvider">默认</option>
+          </select>
+          <select id="idx-model7-select" style="flex:2;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultModel">默认模型</option>
+          </select>
+        </div>
+        <div id="idx-model8-row" style="display:none;gap:4px;align-items:center;margin:2px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.modelLabel" data-i18n-params='{"n":8}'>🤖 模型8:</span>
+          <select id="idx-provider8-select" style="flex:1;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultProvider">默认</option>
+          </select>
+          <select id="idx-model8-select" style="flex:2;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+            <option value="" data-i18n="common.defaultModel">默认模型</option>
+          </select>
+        </div>
+        <div id="idx-status" style="font-size:10px;color:var(--text-muted);margin:4px 0;"></div>
+        <!-- Board filter -->
+        <div style="display:flex;gap:4px;align-items:center;margin:4px 0;font-size:10px;" id="idx-board-filter">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="idx.batchRange">🎯 批量范围:</span>
+          <label style="cursor:pointer;white-space:nowrap;"><input type="checkbox" class="idx-board-toggle" data-board="cyb" checked> <span data-i18n="common.boardCyb">创业板</span></label>
+          <label style="cursor:pointer;white-space:nowrap;"><input type="checkbox" class="idx-board-toggle" data-board="kcb" checked> <span data-i18n="common.boardKcb">科创板</span></label>
+          <label style="cursor:pointer;white-space:nowrap;"><input type="checkbox" class="idx-board-toggle" data-board="bjs" checked> <span data-i18n="common.boardBjs">北交所</span></label>
+          <span style="color:var(--text-muted);" data-i18n="common.boardHint">(取消勾选=批量时跳过该板块)</span>
+        </div>
+        <!-- 涨跌幅 filter (batch only) -->
+        <div style="display:flex;gap:4px;align-items:center;margin:2px 0 4px 0;font-size:10px;">
+          <span style="color:var(--text-muted);white-space:nowrap;" data-i18n="common.changePct">📈 涨跌幅:</span>
+          <label style="cursor:pointer;white-space:nowrap;" data-i18n-title="common.changeOnlyTitle" title="勾选后，批量分析只处理当日涨幅大于设定值的股票">
+            <input type="checkbox" id="idx-change-toggle"> <span data-i18n="common.changeOnly">仅分析涨幅 ></span>
+          </label>
+          <input type="number" id="idx-change-value" value="0" step="0.1" style="width:52px;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);">
+          <span style="color:var(--text-muted);" data-i18n="common.changeStocks">% 的股票</span>
+        </div>
+        <!-- Search -->
+        <div style="display:flex;gap:4px;margin:6px 0;">
+          <div style="flex:1;position:relative;">
+            <input type="text" id="idx-search-input" data-i18n-ph="idx.searchPh" placeholder="🔍 搜索代码/名称..." style="width:100%;font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:3px;box-sizing:border-box;" autocomplete="off">
+            <div id="idx-search-dropdown" class="dropdown hidden" style="position:absolute;top:100%;left:0;right:0;z-index:10;"></div>
+          </div>
+        </div>
+        <div id="idx-list" style="max-height:500px;overflow-y:auto;font-size:11px;">
+          <span class="no-results" data-i18n="idx.empty">点击"刷新"加载沪深300成分股...</span>
+        </div>
+        <!-- Analysis Panel -->
+        <div id="idx-analysis-panel" class="hidden" style="margin-top:8px;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span id="idx-analysis-title" style="font-weight:600;font-size:12px;"></span>
+            <button id="idx-analysis-close" class="btn secondary" style="font-size:10px;padding:2px 6px;">&times;</button>
+          </div>
+          <div id="idx-analysis-body" style="font-size:11px;line-height:1.7;"></div>
+        </div>
+      </div>
+    </div><!-- /tab-index-stocks -->
+
+    <!-- Scheduled Tab -->
+    <div id="tab-scheduled" class="tab-content">
+      <div class="section">
+        <button id="new-task-btn" class="btn primary" style="padding:8px 14px;font-size:13px;width:100%;" data-i18n="sched.newTask">+ 新建定时任务</button>
+      </div>
+      <div id="task-form-container"></div>
+      <div id="task-list" class="task-list">
+        <span class="no-results" data-i18n="sched.loading">加载定时任务中...</span>
+      </div>
+      <details id="task-audit-panel" style="margin-top:10px;">
+        <summary style="cursor:pointer;padding:6px 2px;font-size:13px;font-weight:600;" data-i18n="sched.auditTitle">操作记录</summary>
+        <div id="task-audit-list" style="margin-top:4px;max-height:280px;overflow:auto;font-size:12px;line-height:1.7;">
+          <span class="no-results" data-i18n="sched.auditEmpty">暂无操作记录</span>
+        </div>
+      </details>
+    </div><!-- /tab-scheduled -->
+
+    <!-- Rotation Monitor Tab -->
+    <div id="tab-rotation" class="tab-content">
+
+      <!-- RRG Chart -->
+      <div class="section">
+        <label class="label"><span data-i18n="rot.title">轮动图 (RRG)</span> <span id="rrg-date">loading...</span></label>
+        <div class="rrg-controls">
+          <select id="rrg-mode-select" style="padding:3px 6px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);">
+            <option value="capital" selected data-i18n="rot.modeCapital">主力资金</option>
+            <option value="price" data-i18n="rot.modePrice">价格涨跌</option>
+          </select>
+          <select id="rrg-filter-select" style="padding:3px 6px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);">
+            <option value="leading_improving" selected data-i18n="rot.filterLeadingImproving">领先 + 改善</option>
+            <option value="improving" data-i18n="rot.filterImproving">仅改善</option>
+            <option value="leading" data-i18n="rot.filterLeading">仅领先</option>
+            <option value="all" data-i18n="rot.filterAll">全部象限</option>
+          </select>
+          <button id="rrg-refresh-btn" class="btn secondary" style="padding:3px 8px;font-size:11px;" data-i18n="rot.refresh">刷新</button>
+        </div>
+        <div class="rrg-grid">
+          <canvas id="rrg-canvas" width="380" height="380" style="border:1px solid var(--border);border-radius:6px;background:#fff;"></canvas>
+          <div class="rrg-legend">
+            <div class="rrg-quad" style="background:#dafbe1;"><b data-i18n="rot.legendLeading">领先</b> <span id="rrg-count-leading">0</span></div>
+            <div class="rrg-quad" style="background:#ddf4ff;"><b data-i18n="rot.legendImproving">改善</b> <span id="rrg-count-improving">0</span></div>
+            <div class="rrg-quad" style="background:#ffebe9;"><b data-i18n="rot.legendWeakening">走弱</b> <span id="rrg-count-weakening">0</span></div>
+            <div class="rrg-quad" style="background:#f6f8fa;"><b data-i18n="rot.legendLagging">滞后</b> <span id="rrg-count-lagging">0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rotation Statistics -->
+      <div class="section">
+        <label class="label" data-i18n="rot.stats">轮动统计</label>
+        <div id="rrg-stats-container">
+          <span class="no-results" style="padding:8px;" data-i18n="rot.loadingStats">加载统计中...</span>
+        </div>
+      </div>
+
+      <!-- Industry Breakdown -->
+      <div class="section">
+        <label class="label" data-i18n="rot.industryBreakdown">行业细分</label>
+        <div id="rrg-table" class="rrg-table" style="max-height:250px;overflow-y:auto;">
+          <span class="no-results" style="padding:8px;" data-i18n="rot.clickRefresh">点击刷新加载</span>
+        </div>
+      </div>
+    </div><!-- /tab-rotation -->
+
+
+    <!-- Stock Pick Tab -->
+    <div id="tab-stockpick" class="tab-content">
+
+      <!-- Sub-tab buttons -->
+      <div class="sub-tab-bar" style="display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="sub-tab-btn active" data-subtab="stockpick-smart" data-i18n="scan.smart">智能扫描</button>
+        <button class="sub-tab-btn" data-subtab="stockpick-quick" data-i18n="scan.quick">快速扫描</button>
+        <button class="sub-tab-btn" data-subtab="stockpick-sector" data-i18n="scan.sector">行业扫描器</button>
+      </div>
+
+      <!-- Sub-tab: Smart Scan -->
+      <div id="subtab-stockpick-smart" class="sub-tab-content">
+<div class="section">
+        <label class="label" data-i18n="scan.smartTitle">智能扫描 — 双策略筛选</label>
+        <p style="font-size:11px;color:var(--text-muted);margin:4px 0;" data-i18n="scan.smartDesc">
+          领先行业 → 动量 + 放量确认 | 改善行业 → 反转信号 + 放量突增
+        </p>
+      </div>
+
+      <div class="section">
+        <label class="label" data-i18n="scan.config">配置</label>
+        <div class="scan-config">
+          <div class="config-row">
+            <span class="config-label" data-i18n="scan.quadrantFilter">象限过滤</span>
+            <select id="smart-quadrant-filter" style="padding:3px 6px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);">
+              <option value="all" selected data-i18n="rot.filterLeadingImproving">领先 + 改善</option>
+              <option value="leading" data-i18n="rot.filterLeading">仅领先</option>
+              <option value="improving" data-i18n="rot.filterImproving">仅改善</option>
+            </select>
+          </div>
+          <div class="config-row">
+            <span class="config-label" data-i18n="scan.topPerIndustry">每个行业 top 股票数</span>
+            <input type="number" id="smart-top-n" value="5" min="1" max="15" style="width:55px;">
+          </div>
+          <div class="config-row">
+            <span class="config-label" data-i18n="scan.rpsFilter">RPS 过滤（相对价格强度）</span>
+            <label class="switch">
+              <input type="checkbox" id="smart-rps-filter" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+          <div class="config-row">
+            <span class="config-label" data-i18n="scan.autoLlm">自动 LLM 分析</span>
+            <label class="switch">
+              <input type="checkbox" id="smart-auto-analyze" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <button type="button" id="smart-scan-btn" class="btn prelim-start-btn" style="width:100%;" data-i18n="scan.startSmart">
+          开始智能扫描
+        </button>
+        <span id="smart-scan-spinner" class="spinner hidden"></span>
+        <div id="smart-scan-progress" class="batch-progress hidden" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="section">
+        <label class="label" data-i18n="common.results">结果</label>
+        <div id="smart-scan-results" class="scan-results">
+          <span class="no-results" data-i18n="scan.clickStart">点击"开始智能扫描"开始</span>
+        </div>
+      </div>
+
+      </div><!-- /subtab-stockpick-smart -->
+
+      <!-- Sub-tab: Quick Scans -->
+      <div id="subtab-stockpick-quick" class="sub-tab-content">
+
+
+      <!-- ═══ 1. Quick Scans ═══ -->
+      <div class="section">
+        <label class="label" data-i18n="scan.quickTitle">快速扫描 — 自动选择轮动龙头</label>
+        <p style="font-size:11px;color:var(--text-muted);margin:2px 0 8px;" data-i18n="scan.quickDesc">一键扫描所有 RRG 领先 + 改善行业的预设策略。</p>
+        <div style="display:flex;gap:10px;">
+          <!-- Value Discovery -->
+          <div style="flex:1;border:2px solid var(--accent);border-radius:8px;padding:10px 12px;background:#e8f0fe;">
+            <label class="label" style="color:var(--accent);" data-i18n="scan.valueDiscovery">价值发现</label>
+            <p style="font-size:10px;color:var(--text-muted);margin:2px 0 4px;" data-i18n="scan.valueDiscoveryDesc">低估值 + 资金反转</p>
+            <div style="margin-bottom:4px;">
+              <select id="quick-value-quadrant" style="width:100%;padding:2px 4px;font-size:10px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);">
+                <option value="all" selected data-i18n="rot.filterLeadingImproving">领先 + 改善</option>
+                <option value="leading" data-i18n="rot.filterLeading">仅领先</option>
+                <option value="improving" data-i18n="rot.filterImproving">仅改善</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
+              <span style="font-size:10px;color:var(--text-muted);" data-i18n="scan.top">前</span>
+              <input type="number" id="quick-value-top-n" value="3" min="1" max="50" style="width:40px;padding:2px 4px;font-size:10px;border:1px solid var(--border);border-radius:4px;">
+              <span style="font-size:10px;color:var(--text-muted);" data-i18n="scan.industries">个行业</span>
+              <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer;">
+                <input type="checkbox" id="quick-value-leaders-only" checked> <span data-i18n="scan.leadersOnly">仅龙头</span>
+              </label>
+            </div>
+            <button id="quick-value-rotation-btn" class="btn prelim-start-btn" style="width:100%;font-size:11px;" data-i18n="scan.findUndervalued">
+              寻找被低估的股票
+            </button>
+            <div id="quick-value-progress" class="batch-progress hidden" style="margin-top:6px;">
+              <div class="quick-scan-bar" style="width:100%;height:3px;background:var(--border);border-radius:2px;margin-bottom:4px;">
+                <div id="quick-value-bar-fill" style="height:100%;border-radius:2px;background:var(--accent);transition:width 0.3s;width:0%;"></div>
+              </div>
+              <div id="quick-value-step-text" style="font-size:10px;color:var(--text);margin-bottom:4px;"></div>
+              <div id="quick-value-industry-list" style="font-size:10px;max-height:160px;overflow-y:auto;"></div>
+            </div>
+          </div>
+
+          <!-- MACD Convergence -->
+          <div style="flex:1;border:2px solid #d97706;border-radius:8px;padding:10px 12px;background:#fef3e2;">
+            <label class="label" style="color:#d97706;" data-i18n="scan.macdConvergence">MACD 金叉收敛</label>
+            <p style="font-size:10px;color:var(--text-muted);margin:2px 0 4px;" data-i18n="scan.macdConvergenceDesc">在金叉前捕捉入场点</p>
+            <div style="margin-bottom:4px;">
+              <select id="quick-convergence-quadrant" style="width:100%;padding:2px 4px;font-size:10px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);">
+                <option value="all" selected data-i18n="rot.filterLeadingImproving">领先 + 改善</option>
+                <option value="leading" data-i18n="rot.filterLeading">仅领先</option>
+                <option value="improving" data-i18n="rot.filterImproving">仅改善</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
+              <span style="font-size:10px;color:var(--text-muted);" data-i18n="scan.top">前</span>
+              <input type="number" id="quick-convergence-top-n" value="30" min="1" max="50" style="width:40px;padding:2px 4px;font-size:10px;border:1px solid var(--border);border-radius:4px;">
+              <span style="font-size:10px;color:var(--text-muted);" data-i18n="scan.industries">个行业</span>
+              <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer;">
+                <input type="checkbox" id="quick-convergence-leaders-only" checked> <span data-i18n="scan.leadersOnly">仅龙头</span>
+              </label>
+            </div>
+            <button id="quick-convergence-rotation-btn" class="btn prelim-start-btn" style="width:100%;font-size:11px;" data-i18n="scan.findConvergence">
+              寻找 MACD 收敛
+            </button>
+            <div id="quick-convergence-progress" class="batch-progress hidden" style="margin-top:6px;">
+              <div class="quick-scan-bar" style="width:100%;height:3px;background:var(--border);border-radius:2px;margin-bottom:4px;">
+                <div id="quick-convergence-bar-fill" style="height:100%;border-radius:2px;background:#d97706;transition:width 0.3s;width:0%;"></div>
+              </div>
+              <div id="quick-convergence-step-text" style="font-size:10px;color:var(--text);margin-bottom:4px;"></div>
+              <div id="quick-convergence-industry-list" style="font-size:10px;max-height:160px;overflow-y:auto;"></div>
+            </div>
+          </div>
+
+          <!-- Divergence Hunter -->
+          <div style="flex:1;border:2px solid #6f42c1;border-radius:8px;padding:10px 12px;background:#f5f0ff;">
+            <label class="label" style="color:#6f42c1;" data-i18n="scan.divergenceHunter">背离猎手</label>
+            <p style="font-size:10px;color:var(--text-muted);margin:2px 0 4px;" data-i18n="scan.divergenceHunterDesc">MACD 看涨背离 + 资金流入</p>
+            <div style="margin-bottom:4px;">
+              <select id="quick-divergence-quadrant" style="width:100%;padding:2px 4px;font-size:10px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);">
+                <option value="all" selected data-i18n="rot.filterLeadingImproving">领先 + 改善</option>
+                <option value="improving" data-i18n="rot.filterImproving">仅改善</option>
+                <option value="leading" data-i18n="rot.filterLeading">仅领先</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
+              <span style="font-size:10px;color:var(--text-muted);" data-i18n="scan.top">前</span>
+              <input type="number" id="quick-divergence-top-n" value="10" min="1" max="50" style="width:40px;padding:2px 4px;font-size:10px;border:1px solid var(--border);border-radius:4px;">
+              <span style="font-size:10px;color:var(--text-muted);" data-i18n="scan.industries">个行业</span>
+              <label style="font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer;">
+                <input type="checkbox" id="quick-divergence-leaders-only" checked> <span data-i18n="scan.leadersOnly">仅龙头</span>
+              </label>
+            </div>
+            <button id="quick-divergence-rotation-btn" class="btn prelim-start-btn" style="width:100%;font-size:11px;background:#6f42c1;border-color:#6f42c1;" data-i18n="scan.findDivergence">
+              寻找背离
+            </button>
+            <div id="quick-divergence-progress" class="batch-progress hidden" style="margin-top:6px;">
+              <div class="quick-scan-bar" style="width:100%;height:3px;background:var(--border);border-radius:2px;margin-bottom:4px;">
+                <div id="quick-divergence-bar-fill" style="height:100%;border-radius:2px;background:#6f42c1;transition:width 0.3s;width:0%;"></div>
+              </div>
+              <div id="quick-divergence-step-text" style="font-size:10px;color:var(--text);margin-bottom:4px;"></div>
+              <div id="quick-divergence-industry-list" style="font-size:10px;max-height:160px;overflow-y:auto;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      </div><!-- /subtab-stockpick-quick -->
+
+      <!-- Sub-tab: Sector Scanner -->
+      <div id="subtab-stockpick-sector" class="sub-tab-content">
+
+
+      <!-- ═══ 3. Manual Scan ═══ -->
+      <div class="section">
+        <label class="label" data-i18n="scan.manualScan">手动扫描</label>
+        <p style="font-size:11px;color:var(--text-muted);margin:2px 0 4px;" data-i18n="scan.manualDesc">选择特定行业并配置自定义筛选策略。</p>
+        <details style="margin-bottom:8px;">
+          <summary style="cursor:pointer;font-size:12px;font-weight:600;"><span data-i18n="scan.industriesSummary">行业</span> <span id="sector-count-hint" style="font-weight:400;color:var(--text-muted);" data-i18n="scan.countZero">(0 已选)</span></summary>
+          <div class="sector-search-row" style="margin-top:4px;">
+            <input type="text" id="sector-search-input" data-i18n-ph="scan.searchIndustries" placeholder="搜索行业..." style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text);">
+            <button id="sector-clear-search" class="btn secondary" style="padding:4px 8px;font-size:11px;" data-i18n-title="scan.clearSearch" title="清除搜索">✕</button>
+          </div>
+          <div class="sector-checkbox-list" id="sector-checkbox-list" style="margin-top:4px;">
+            <span class="no-results" style="padding:10px;" data-i18n="scan.industriesLoading">正在加载行业…</span>
+          </div>
+          <div class="sector-list-actions">
+            <label class="select-all-label"><input type="checkbox" id="sector-select-all"> <span data-i18n="scan.selectAll">全选</span></label>
+            <button id="sector-select-improving" class="btn secondary" style="padding:3px 8px;font-size:10px;color:var(--accent);border-color:var(--accent);" data-i18n-title="scan.selImprovingTitle" title="只选改善象限的行业" data-i18n="scan.selImproving">仅改善</button>
+            <span id="sector-filter-count" style="font-size:11px;color:var(--text-muted);"></span>
+          </div>
+        </details>
+        <details style="margin-bottom:8px;">
+          <summary style="cursor:pointer;font-size:12px;font-weight:600;" data-i18n="scan.screeningStrategies">筛选策略</summary>
+          <div style="margin-top:4px;">
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
+              <span style="font-size:11px;color:var(--text-muted);" data-i18n="scan.preset">预设:</span>
+              <select id="strategy-preset-select" style="padding:3px 6px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);">
+                <option value="" data-i18n="scan.custom">-- 自定义 --</option>
+              </select>
+            </div>
+            <div id="strategy-groups-container"></div>
+            <button id="add-strategy-group-btn" class="btn secondary" style="padding:5px 10px;font-size:11px;width:100%;" data-i18n="scan.addStrategyGroup">+ 添加策略组</button>
+          </div>
+        </details>
+        <details style="margin-bottom:8px;">
+          <summary style="cursor:pointer;font-size:12px;font-weight:600;" data-i18n="scan.globalFilters">全局过滤</summary>
+          <div class="scan-config" style="margin-top:4px;">
+            <div class="config-row">
+              <span class="config-label" data-i18n="scan.marketCapTopPct">市值 Top %</span>
+              <input type="number" id="filter-cap-percent" value="50" min="5" max="100" step="5" style="width:70px">
+            </div>
+            <div class="config-row">
+              <span class="config-label" data-i18n="scan.requirePositiveFundFlow">要求主力资金净流入</span>
+              <label class="switch">
+                <input type="checkbox" id="filter-fund-flow">
+                <span class="slider round"></span>
+              </label>
+            </div>
+            <div class="config-row">
+              <span class="config-label" data-i18n="scan.outputLang">输出语言</span>
+              <select id="prelim-language-select" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text);">
+                <option value="Chinese" selected>中文</option>
+                <option value="English">English</option>
+              </select>
+            </div>
+          </div>
+        </details>
+        <button type="button" id="scan-btn" class="btn primary" disabled style="width:100%;" data-i18n="scan.scanSelected">扫描所选行业</button>
+      </div>
+
+      <!-- ═══ 4. Results ═══ -->
+      <div class="section">
+        <label class="label" data-i18n="common.results">结果</label>
+        <div id="scan-progress-container" class="batch-progress hidden" style="margin-bottom:8px;">
+          <div style="width:100%;height:4px;background:var(--border);border-radius:2px;margin-bottom:6px;">
+            <div id="scan-progress-bar-fill" style="height:100%;border-radius:2px;background:var(--accent);transition:width 0.3s;width:0%;"></div>
+          </div>
+          <div id="scan-progress-step-text" style="font-size:11px;color:var(--text);margin-bottom:6px;"></div>
+          <div id="scan-progress-industry-list" style="font-size:11px;max-height:200px;overflow-y:auto;"></div>
+        </div>
+        <div id="scan-results" class="scan-results">
+          <span class="no-results" data-i18n="scan.noResults">使用快速扫描或手动扫描寻找候选标的。</span>
+        </div>
+      </div>
+
+  
+    
+      </div><!-- /subtab-stockpick-sector -->
+
+
+    </div><!-- /tab-stockpick -->
+
+
+        <!-- Advisory Tab -->
+    <div id="tab-advisory" class="tab-content advisory-tab-full">
+      <!-- Thread list header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-shrink:0;">
+        <label class="label" style="margin:0;" data-i18n="advisory.conversations">对话</label>
+        <button class="btn" id="advisory-new-thread-btn" style="font-size:10px;padding:4px 10px;background:var(--accent);color:#fff;border:none;" data-i18n="advisory.new">+ 新建</button>
+      </div>
+
+      <!-- Two-pass (二次分析) records — click to deep-analyze in Advisory -->
+      <details id="advisory-twopass-records" style="margin-bottom:8px;flex-shrink:0;border:1px solid var(--border);border-radius:6px;padding:4px 6px;">
+        <summary style="font-size:11px;cursor:pointer;color:var(--accent);user-select:none;" data-i18n="advisory.twopassRecords">📈 二次分析看多记录</summary>
+        <div id="advisory-twopass-records-list" style="font-size:10px;max-height:160px;overflow-y:auto;margin-top:4px;" data-i18n="common.loading">加载中...</div>
+      </details>
+
+      <!-- Stage-3 (阶段三·顾问综合报告) records — read-only, click to view report -->
+      <details id="advisory-stage3-records" style="margin-bottom:8px;flex-shrink:0;border:1px solid var(--border);border-radius:6px;padding:4px 6px;">
+        <summary style="font-size:11px;cursor:pointer;color:var(--accent);user-select:none;" data-i18n="advisory.stage3Records">🧭 阶段三·综合报告</summary>
+        <div id="advisory-stage3-records-list" style="font-size:10px;max-height:160px;overflow-y:auto;margin-top:4px;" data-i18n="common.loading">加载中...</div>
+      </details>
+
+      <!-- 东方自选 quick-analysis panel — mirror of 二次分析看多记录 -->
+      <details id="advisory-emwl" style="margin-bottom:8px;flex-shrink:0;border:1px solid var(--border);border-radius:6px;padding:4px 6px;">
+        <summary style="font-size:11px;cursor:pointer;color:var(--accent);user-select:none;" data-i18n="advisory.emwlQuick">📡 东方自选 · 快速分析</summary>
+        <div style="display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap;">
+          <button class="btn" id="advisory-emwl-refresh" style="font-size:10px;padding:2px 6px;" data-i18n="advisory.refresh">🔄 刷新</button>
+          <label style="display:flex;align-items:center;gap:2px;cursor:pointer;font-size:10px;color:var(--text-muted);"><input type="checkbox" id="advisory-emwl-select-all"> <span data-i18n="advisory.selectAll">全选</span></label>
+          <span id="advisory-emwl-status" style="font-size:9px;color:var(--text-muted);"></span>
+        </div>
+        <input type="text" id="advisory-emwl-search" data-i18n-ph="advisory.searchPh" placeholder="🔍 搜索代码/名称..." autocomplete="off" style="width:100%;font-size:10px;padding:3px 6px;margin-top:4px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);box-sizing:border-box;">
+        <div id="advisory-emwl-list" style="font-size:10px;max-height:200px;overflow-y:auto;margin-top:4px;" data-i18n="advisory.emwlEmpty">点击「刷新」加载东方自选...</div>
+        <button class="btn primary" id="advisory-emwl-analyze" style="font-size:10px;padding:3px 8px;margin-top:4px;background:#6f42c1;color:#fff;" disabled data-i18n="advisory.analyzeSel" data-i18n-params='{"n":0}'>🚀 分析所选 (0)</button>
+      </details>
+
+      <!-- Thread list -->
+      <div id="advisory-thread-list" style="flex:1;overflow-y:auto;min-height:100px;">
+        <span class="no-results" style="padding:8px;font-size:11px;" data-i18n="advisory.loadingConv">加载对话中...</span>
+      </div>
+
+      <!-- Tools Panel -->
+      <div style="padding:0 4px 4px 4px;flex-shrink:0;">
+        <div onclick="var el=document.getElementById('advisory-tools-list');var arrow=document.getElementById('advisory-tools-arrow');if(el.style.display==='none'){el.style.display='block';arrow.textContent='▼'}else{el.style.display='none';arrow.textContent='▶'}" style="cursor:pointer;font-size:10px;color:var(--text-muted);padding:4px 0;user-select:none;">
+          <span id="advisory-tools-arrow">▶</span> <span data-i18n="advisory.toolsHeader">37 个工具 — 顾问智能体</span>
+        </div>
+        <div id="advisory-tools-list" style="display:none;font-size:9px;color:var(--text-muted);line-height:1.6;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:6px 8px;max-height:300px;overflow-y:auto;">
+          <b data-i18n="advisory.toolsHistory">📡 历史与分析</b><br>
+          &nbsp;&nbsp;• query_past_analyses • run_full_analysis<br>
+          <b data-i18n="advisory.toolsMarket">📊 市场数据 (7)</b><br>
+          &nbsp;&nbsp;• get_stock_data • get_indicators • get_intraday_data • get_realtime_quote<br>
+          &nbsp;&nbsp;• get_fundamentals • get_balance_sheet • get_cashflow • get_income_statement<br>
+          <b data-i18n="advisory.toolsCapitalFlow">💰 资金流向 (4)</b><br>
+          &nbsp;&nbsp;• get_money_flow • get_hsgt_flow • get_market_flow • get_margin_trading<br>
+          <b data-i18n="advisory.toolsHoldings">🏢 持仓 (3)</b><br>
+          &nbsp;&nbsp;• get_institutional_holders • get_major_holders • get_analyst_recommendations<br>
+          <b data-i18n="advisory.toolsNews">📰 新闻 (3)</b><br>
+          &nbsp;&nbsp;• get_news • get_global_news • get_insider_transactions<br>
+          <b data-i18n="advisory.toolsScreening">🔍 筛选 (7)</b><br>
+          &nbsp;&nbsp;• get_market_scan_context • run_smart_screening<br>
+          &nbsp;&nbsp;• get_smart_money_score • get_top_gainers • get_multi_factor_ranking<br>
+          &nbsp;&nbsp;• get_high_dividend_stocks<br>
+          <b data-i18n="advisory.toolsMl">🔮 机器学习 (2)</b><br>
+          &nbsp;&nbsp;• predict_stock_price • query_past_analyses<br>
+          <b data-i18n="advisory.toolsInfo">🌐 信息 (2)</b><br>
+          &nbsp;&nbsp;• query_eastmoney_data • web_search_current<br>
+          <b data-i18n="advisory.toolsPerf">📋 表现 (2)</b><br>
+          &nbsp;&nbsp;• query_pick_performance • evaluate_past_recommendations<br>
+          <b data-i18n="advisory.toolsTwopass">📈 二次分析 (2)</b><br>
+          &nbsp;&nbsp;• get_twopass_records • get_twopass_record_detail<br>
+          <b data-i18n="advisory.toolsStrategy">⚙ 策略与技能 (5)</b><br>
+          &nbsp;&nbsp;• list_strategies • run_system_calibration • compare_backtests<br>
+          &nbsp;&nbsp;• list_pending_experiences • approve/reject_experience • generate_analyst_skill<br>
+          <div style="margin-top:4px;padding-top:4px;border-top:1px dotted var(--border);">
+          <b data-i18n="advisory.logic">逻辑:</b> <span data-i18n="advisory.logicDesc">历史检查 → 工具 → 完整分析或快速评估 → 呈现</span>
+          </div>
+        </div>
+      </div>
+      <!-- Ticker quick selector -->
+      <div style="flex-shrink:0;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <button class="btn" id="advisory-load-tickers-btn" style="font-size:10px;padding:3px 8px;" data-i18n="advisory.listTickers">列出代码</button>
+          <span id="advisory-ticker-chips" style="display:flex;gap:4px;flex-wrap:wrap;"></span>
+          <span id="advisory-ticker-status" style="font-size:9px;color:var(--text-muted);"></span>
+        </div>
+      </div>
+      <!-- Resizable divider above experience panel -->
+      <div id="advisory-resizer" style="height:6px;background:transparent;cursor:row-resize;flex-shrink:0;margin:4px 0;border-radius:3px;" data-i18n-title="common.resizeTitle" title="拖动调整大小"></div>
+      <!-- Experience Library -->
+      <details id="experience-panel-container" style="margin-top:0;flex-shrink:0;">
+        <summary style="font-size:11px;cursor:pointer;color:var(--accent);padding:4px 8px;" data-i18n="advisory.experienceLibrary">⚙ 经验库</summary>
+        <div id="experience-panel" style="font-size:11px;max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;padding:4px 8px;" data-i18n="common.loading">加载中...</div>
+      </details>
+      <script src="/static/advisory_experiences.js?v=1"></script>
+    </div><!-- /tab-advisory -->
+
+    <!-- AI Pick Tab -->
+    <div id="tab-aipick" class="tab-content aipick-tab-full">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-shrink:0;">
+        <label class="label" style="margin:0;" data-i18n="pick.conversations">AI 选股对话</label>
+        <button class="btn" id="aipick-new-thread-btn" style="font-size:10px;padding:4px 10px;background:var(--accent);color:#fff;border:none;" data-i18n="pick.new">+ 新建</button>
+      </div>
+      <!-- ── Strategy Guide (collapsed) ── -->
+      <div style="padding:4px 12px 2px 12px;flex-shrink:0;">
+        <div onclick="var el=document.getElementById('aipick-strategy-guide');var a=document.getElementById('aipick-sg-arrow');if(el.style.display==='none'){el.style.display='block';a.textContent='▼'}else{el.style.display='none';a.textContent='▶'}" style="cursor:pointer;font-size:10px;color:var(--accent);font-weight:600;padding:4px 0;user-select:none;">
+          <span id="aipick-sg-arrow">▶</span> <span data-i18n="pick.strategyGuide">快捷选股策略说明 (Strategy Guide)</span>
+        </div>
+        <div id="aipick-strategy-guide" style="display:none;font-size:10px;line-height:1.6;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:8px 10px;max-height:350px;overflow-y:auto;">
+          <div style="margin-bottom:8px;"><b style="color:#1a7f37;" data-i18n="pick.guideDividend">💰 股息率选股</b> — <span data-i18n="pick.guideDividendSub">稳健价值策略</span><br>
+          &nbsp;&nbsp;<span data-i18n="pick.guideDividendSteps">① 列出A股股息率TOP100 → ② 行业轮动过滤（Leading/Improving板块）→ ③ 主力资金验证</span><br>
+          &nbsp;&nbsp;<b data-i18n="pick.guideFit">适合</b>：<span data-i18n="pick.guideDividendFitVal">保守型、退休理财、闲钱配置</span></div>
+          <div style="margin-bottom:8px;"><b style="color:#ff6600;" data-i18n="pick.guideReversal">🔥 热点反转</b> — <span data-i18n="pick.guideReversalSub">进取题材策略</span><br>
+          &nbsp;&nbsp;<span data-i18n="pick.guideReversalSteps">① 多因子TOP30+热点概念TOP30 → ② 3硬护栏（未涨过头+业绩不差+主力存在）→ ③ 6维评分</span><br>
+          &nbsp;&nbsp;<b data-i18n="pick.guideFit">适合</b>：<span data-i18n="pick.guideReversalFitVal">进取型、事件驱动、波段操作</span></div>
+          <div style="margin-bottom:8px;"><b data-i18n="pick.guideVal">📡 ①估值</b>：<span data-i18n="pick.guideValDesc">PE&lt;15、PB&lt;1、股息率&gt;4% → run_smart_screening / get_high_dividend_stocks</span></div>
+          <div style="margin-bottom:8px;"><b data-i18n="pick.guideTrend">📈 ②趋势</b>：<span data-i18n="pick.guideTrendDesc">均线多头、放量突破、MACD金叉 → run_smart_screening / get_top_gainers</span></div>
+          <div style="margin-bottom:8px;"><b data-i18n="pick.guideFund">💰 ③资金</b>：<span data-i18n="pick.guideFundDesc">主力流入、北向净买、融资上升 → get_top_net_inflow / get_smart_money_score / get_realtime_fund_flow</span></div>
+          <div style="margin-bottom:8px;"><b data-i18n="pick.guideTheme">🔥 ④题材</b>：<span data-i18n="pick.guideThemeDesc">政策/事件驱动、行业轮动 → get_market_scan_context / query_eastmoney_data</span></div>
+          <div style="margin-bottom:8px;"><b data-i18n="pick.guideFunda">🏢 ⑤基本面</b>：<span data-i18n="pick.guideFundaDesc">ROE&gt;15%、营收增速&gt;20% → run_smart_screening</span></div>
+          <div><b data-i18n="pick.guideDiscipline">🧘 ⑥纪律</b>：<span data-i18n="pick.guideDisciplineDesc">-8%止损、不追涨30%+、不接飞刀 → 所有推荐附带仓位+止损建议</span></div>
+        </div>
+      </div>
+      <!-- ① 估值逻辑 — "买便宜的" -->
+      <div id="aipick-val-quick" style="padding:0 12px 6px 12px;display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0;">
+        <span style="font-size:9px;color:#1a7f37;line-height:22px;font-weight:600;" data-i18n="pick.valLabel">①估值</span>
+        <button class="btn" style="font-size:10px;padding:3px 7px;background:#dafbe1;color:#1a7f37;border:1px solid #1a7f37;border-radius:4px;cursor:pointer;" onclick="quickPickQuestion('选出市盈率低于15且市净率低于1且股息率大于3%的A股')" data-i18n="pick.valPePb">PE<15+PB<1+高股息</button>
+        <button class="btn" style="font-size:10px;padding:3px 7px;background:#dafbe1;color:#1a7f37;border:1px solid #1a7f37;border-radius:4px;cursor:pointer;" onclick="quickPickQuestion('列出A股股息率最高的30只股票')" data-i18n="pick.valTop30">股息率TOP30</button>
+        <button class="btn" style="font-size:10px;padding:3px 7px;background:#dafbe1;color:#1a7f37;border:1px solid #1a7f37;border-radius:4px;cursor:pointer;" onclick="quickPickQuestion('选出PEG小于1且ROE大于15%的A股成长股')" data-i18n="pick.valPeg">PEG<1+高ROE</button>
+      </div>
+      <!-- ② 趋势逻辑 — "买涨的" -->
+      <div id="aipick-trend-quick" style="padding:0 12px 6px 12px;display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0;">
+        <span style="font-size:9px;color:#0550ae;line-height:22px;font-weight:600;" data-i18n="pick.trendLabel">②趋势</span>
+        <button class="btn" style="font-size:10px;padding:3px 7px;background:#ddf4ff;color:#0550ae;border:1px solid #0550ae;border-radius:4px;cursor:pointer;" onclick="quickPickQuestion('选出均线多头排列且MACD金叉的A股')" data-i18n="pick.trendMa">均线多头+金叉</button>
+        <button class="btn" style="font-size:10px;padding:3px 7px;background:#ddf4ff;color:#0550ae;border:1px solid #0550ae;border-radius:4px;cursor:pointer;" onclick="quickPickQuestion('选出放量突破60日高点的A股')" data-i18n="pick.trendVolume">放量突破前高</button>
+        <button class="btn" style="font-size:10px;padding:3px 7px;background:#ddf4ff;color:#0550ae;border:1px solid #0550ae;border-radius:4px;cursor:pointer;" onclick="quickPickQuestion('选出距180日高点跌幅超30%且RSI低于30的超跌A股')" data-i18n="pick.trendOversold">超跌反弹(RSI<30·180日底)</button>
+      </div>
+      <!-- ③ 资金逻辑 — "跟着主力走" -->
+      <div id="aipick-flow-quick" style="padding:0 12px 6px 12px;display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0;">
+        <span style="font-size:9px;color:#bc4c00;line-height:22px;font-weight:600;" data-i18n="pick.flowLabel">③资金</span>
+        <button class="btn" style="font-size:10px;padding:3px 7px;background:#fff0e6;color:#bc4c00;border:1px solid #e67e22;border-radius:4px;cursor:pointer;" onclick="quickPickQuestion('选出主力资金连续5日净流入的A股')" data-i18n="pick.flowInflow">主力持续流入</button>
+        <button class="btn" style="font-size:10px;padding:3px 7px;background:#fff0e6;color:#bc4c00;border:1px solid #e67e22;border-radius:4px;cursor:pointer;" onclick="quickPickQuestion('选出北向资金连续增持且主力净流入的A股')" data-i18n="pick.flowNorthbound">北向+主力共振</button>
+        <button class="btn" style="font-size:10px;padding:3px 7px;background:#fff0e6;color:#bc4c00;border:1px solid #e67e22;border-radius:4px;cursor:pointer;" onclick="quickPickQuestion('今日主力资金净流入排名前20')" data-i18n="pick.flowTop20">主力净流入TOP20</button>
+      </div>
+      <!-- ④ 题材逻辑 — "买热门的" -->
+      <div id="aipick-theme-quick" style="padding:0 12px 6px 12px;display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0;">
+        <span style="font-size:9px;color:#6e22b5;line-height:22px;font-weight:600;" data-i18n="pick.themeLabel">④题材</span>
+        <button class="btn" style="font-size:10px;padding:3px 7px;background:#f5e6ff;color:#6e22b5;border:1px solid #6e22b5;border-radius:4px;cursor:pointer;" onclick="quickPickQuestion('今日热点板块有哪些')" data-i18n="pick.themeHotSectors">今日热点板块</button>
+        <button class="btn" style="font-size:10px;padding:3px 7px;background:#f5e6ff;color:#6e22b5;border:1px solid #6e22b5;border-radius:4px;cursor:pointer;" onclick="quickPickQuestion('今日涨幅最大的板块排名')" data-i18n="pick.themeGainersRank">板块涨幅排名</button>
+        <button class="btn" style="font-size:10px;padding:3px 7px;background:#f5e6ff;color:#6e22b5;border:1px solid #6e22b5;border-radius:4px;cursor:pointer;" onclick="quickPickQuestion('今日涨停股票列表')" data-i18n="pick.themeLimitUp">今日涨停股</button>
+      </div>
+      <!-- ⑤ 基本面逻辑 — "买好公司" -->
+      <div id="aipick-funda-quick" style="padding:0 12px 6px 12px;display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0;">
+        <span style="font-size:9px;color:#0b6e4f;line-height:22px;font-weight:600;" data-i18n="pick.fundaLabel">⑤基本面</span>
+        <button class="btn" style="font-size:10px;padding:3px 7px;background:#d5f5e3;color:#0b6e4f;border:1px solid #0b6e4f;border-radius:4px;cursor:pointer;" onclick="quickPickQuestion('选出ROE大于15%且营收增速大于20%的A股')" data-i18n="pick.fundaRoe">ROE>15%+高增长</button>
+        <button class="btn" style="font-size:10px;padding:3px 7px;background:#d5f5e3;color:#0b6e4f;border:1px solid #0b6e4f;border-radius:4px;cursor:pointer;" onclick="quickPickQuestion('选出资产负债率低于50%且经营现金流为正的A股')" data-i18n="pick.fundaDebt">低负债+真金白银</button>
+        <button class="btn" style="font-size:10px;padding:3px 7px;background:#d5f5e3;color:#0b6e4f;border:1px solid #0b6e4f;border-radius:4px;cursor:pointer;" onclick="quickPickQuestion('选出市值小于100亿且净利润增速大于30%的小盘成长A股')" data-i18n="pick.fundaSmallCap">小盘高成长</button>
+      </div>
+      <!-- ── Quick Picks (original, preserved) ── -->
+      <div style="padding:0 12px 2px 12px;flex-shrink:0;"><span style="font-size:9px;color:var(--text-muted);" data-i18n="pick.quickTitle">快捷选股:</span></div>
+      <div id="aipick-quick" style="padding:0 12px 6px 12px;display:flex;gap:3px;flex-wrap:wrap;flex-shrink:0;">
+        <button class="btn" style="font-size:10px;padding:2px 6px;background:#1a7f37;color:#fff;border:1px solid #0d5c24;border-radius:3px;cursor:pointer;font-weight:600;" onclick="runDirectTool('get_short_term_picks','💰 股息率选股')" data-i18n="pick.quickDividend">💰 股息率选股</button>
+        <button class="btn" style="font-size:10px;padding:2px 6px;background:#ff6600;color:#fff;border:1px solid #cc4400;border-radius:3px;cursor:pointer;font-weight:600;" onclick="runDirectTool('get_hot_reversal_picks','🔥 热点反转')" data-i18n="pick.quickReversal">🔥 热点反转</button>
+        <button class="btn" style="font-size:10px;padding:2px 6px;background:#e8f0fe;color:var(--accent);border:1px solid var(--accent);border-radius:3px;cursor:pointer;" onclick="quickPickQuestion('主力资金加速流入的股票')" data-i18n="pick.quickFlowAccel">🚀 主力加速流入</button>
+        <button class="btn" style="font-size:10px;padding:2px 6px;background:#e8f0fe;color:var(--accent);border:1px solid var(--accent);border-radius:3px;cursor:pointer;" onclick="quickPickQuestion('主力强势流入的科技股')" data-i18n="pick.quickTech">💻 科技+主力</button>
+        <button class="btn" style="font-size:10px;padding:2px 6px;background:#fff8c5;color:#9a6700;border:1px solid #d4a72c;border-radius:3px;cursor:pointer;" onclick="quickPickQuestion('主力逆势抄底的股票')" data-i18n="pick.quickCounter">🔄 逆势抄底</button>
+        <button class="btn" style="font-size:10px;padding:2px 6px;background:#e8f0fe;color:var(--accent);border:1px solid var(--accent);border-radius:3px;cursor:pointer;" onclick="quickPickQuestion('主力净流入占比前10')" data-i18n="pick.quickNetInflow">📊 净流入占比</button>
+        <button class="btn" style="font-size:10px;padding:2px 6px;background:#dafbe1;color:#1a7f37;border:1px solid #1a7f37;border-radius:3px;cursor:pointer;" onclick="quickPickQuestion('主力连续5日净流入')" data-i18n="pick.quickSustained">📈 持续流入</button>
+        <button class="btn" style="font-size:10px;padding:2px 6px;background:#f5e6ff;color:#6e22b5;border:1px solid #6e22b5;border-radius:3px;cursor:pointer;" onclick="quickPickQuestion('北向资金连续增持的A股')" data-i18n="pick.quickNorthbound">🐂 北向重仓</button>
+        <button class="btn" style="font-size:10px;padding:2px 6px;background:#fff0e6;color:#d35400;border:1px solid #e67e22;border-radius:3px;cursor:pointer;" onclick="quickPickQuestion('近期发布回购或增持公告的A股')" data-i18n="pick.quickBuyback">🛡️ 回购增持</button>
+      </div>
+      <!-- Tools Panel -->
+      <div id="aipick-tools-panel" style="padding:0 12px 4px 12px;flex-shrink:0;">
+        <div onclick="var el=document.getElementById('aipick-tools-list');var arrow=document.getElementById('aipick-tools-arrow');if(el.style.display==='none'){el.style.display='block';arrow.textContent='▼'}else{el.style.display='none';arrow.textContent='▶'}" style="cursor:pointer;font-size:10px;color:var(--text-muted);padding:4px 0;user-select:none;">
+          <span id="aipick-tools-arrow">▶</span> <span data-i18n="pick.toolsHeader">12 个工具与选股逻辑</span>
+        </div>
+        <div id="aipick-tools-list" style="display:none;font-size:9px;color:var(--text-muted);line-height:1.6;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:6px 8px;max-height:200px;overflow-y:auto;">
+          <b data-i18n="pick.toolsMacro">📡 宏观与市场</b><br>
+          &nbsp;&nbsp;<span data-i18n="pick.toolMarketOverview">• get_market_overview — 5大指数快照</span><br>
+          &nbsp;&nbsp;<span data-i18n="pick.toolMarketScanContext">• get_market_scan_context — 行业轮动</span><br>
+          <b data-i18n="pick.toolsScan">🔍 全市场扫描</b><br>
+          &nbsp;&nbsp;<span data-i18n="pick.toolTopGainers">• get_top_gainers — 涨幅榜</span><br>
+          &nbsp;&nbsp;<span data-i18n="pick.toolTopNetInflow">• get_top_net_inflow — 主力净流入榜</span><br>
+          &nbsp;&nbsp;<span data-i18n="pick.toolMultiFactor">• get_multi_factor_ranking — 多因子排名</span><br>
+          &nbsp;&nbsp;<span data-i18n="pick.toolHighDividend">• get_high_dividend_stocks — 高股息TOP100</span><br>
+          <b data-i18n="pick.toolsVerify">✅ 验证与选股</b><br>
+          &nbsp;&nbsp;<span data-i18n="pick.toolSmartMoneyScore">• get_smart_money_score — 7维主力评分</span><br>
+          &nbsp;&nbsp;<span data-i18n="pick.toolSmartScreening">• run_smart_screening — 自然语言选股</span><br>
+          &nbsp;&nbsp;<span data-i18n="pick.toolPredictPrice">• predict_stock_price — ML价格预测</span><br>
+          <b data-i18n="pick.toolsInfo">🌐 信息与工具</b><br>
+          &nbsp;&nbsp;<span data-i18n="pick.toolEastmoneyQuery">• query_eastmoney_data — 东方财富热点查询</span><br>
+          &nbsp;&nbsp;<span data-i18n="pick.toolWebSearch">• web_search_current — 网络搜索</span><br>
+          &nbsp;&nbsp;<span data-i18n="pick.toolPickPerformance">• query_pick_performance — 历史推荐表现</span><br>
+          <div style="margin-top:4px;padding-top:4px;border-top:1px dotted var(--border);">
+          <b data-i18n="pick.logic">选股逻辑:</b> <span data-i18n="pick.logicDesc">用户需求 → 对应扫描工具 → get_smart_money_score ≥50 → 推荐</span>
+          </div>
+        </div>
+      </div>
+      <div id="aipick-thread-list" style="flex:1;overflow-y:auto;min-height:100px;">
+        <span class="no-results" style="padding:8px;font-size:11px;" data-i18n="pick.loadingConv">加载对话中...</span>
+      </div>
+    </div><!-- /tab-aipick -->
+
+    <!-- Prediction Tab -->
+    <div id="tab-prediction" class="tab-content prediction-tab-full">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-shrink:0;">
+        <label class="label" style="margin:0;" data-i18n="pred.conversations">预测</label>
+        <button class="btn" id="prediction-new-thread-btn" style="font-size:10px;padding:4px 10px;background:var(--accent);color:#fff;border:none;" data-i18n="pred.new">+ 新建</button>
+      </div>
+      <!-- Tools Panel -->
+      <div style="padding:0 4px 4px 4px;flex-shrink:0;">
+        <div onclick="var el=document.getElementById('prediction-tools-list');var arrow=document.getElementById('prediction-tools-arrow');if(el.style.display==='none'){el.style.display='block';arrow.textContent='▼'}else{el.style.display='none';arrow.textContent='▶'}" style="cursor:pointer;font-size:10px;color:var(--text-muted);padding:4px 0;user-select:none;">
+          <span id="prediction-tools-arrow">▶</span> <span data-i18n="pred.toolsHeader">4 个工具 — 预测智能体</span>
+        </div>
+        <div id="prediction-tools-list" style="display:none;font-size:9px;color:var(--text-muted);line-height:1.6;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:6px 8px;">
+          <b data-i18n="pred.verifyTicker">🔍 验证代码</b><br>
+          &nbsp;&nbsp;<span data-i18n="pred.toolVerifyTicker">• verify_ticker — 公司名/代码 → 标准ticker</span><br>
+          <b data-i18n="pred.mlPrediction">🔮 机器学习预测</b><br>
+          &nbsp;&nbsp;<span data-i18n="pred.toolPredictStock">• predict_stock_price — 5d/20d方向概率 + 价格区间 + 机构行为阶段</span><br>
+          <b data-i18n="pred.capitalFlow">💰 资金流向验证</b><br>
+          &nbsp;&nbsp;<span data-i18n="pred.toolSmartScore">• get_smart_money_score — 6维主力资金评分（交叉验证预测）</span><br>
+          <b data-i18n="pred.marketContext">📡 市场环境</b><br>
+          &nbsp;&nbsp;<span data-i18n="pred.toolMarketOverview">• get_market_overview — 5大指数快照 + 趋势</span><br>
+          <div style="margin-top:4px;padding-top:4px;border-top:1px dotted var(--border);">
+          <b data-i18n="pred.logic">逻辑:</b> <span data-i18n="pred.logicDesc">verify_ticker → predict_stock_price → get_smart_money_score → get_market_overview → 分析</span>
+          </div>
+        </div>
+      </div>
+      <div id="prediction-thread-list" style="flex:1;overflow-y:auto;min-height:100px;">
+        <span class="no-results" style="padding:8px;font-size:11px;" data-i18n="pred.loading">加载预测中...</span>
+      </div>
+    </div><!-- /tab-prediction -->
+
+    <!-- Strategy Tab -->
+    <div id="tab-strategy" class="tab-content strategy-tab-full">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0;">
+        <label class="label" style="margin:0;" data-i18n="strat.title">策略</label>
+        <button class="btn" id="strategy-new-thread-btn" style="font-size:10px;padding:4px 10px;background:var(--accent);color:#fff;border:none;" data-i18n="strat.new">+ 新建</button>
+      </div>
+      <div id="strategy-thread-list" style="flex:1;overflow-y:auto;min-height:100px;">
+        <span class="no-results" style="padding:8px;font-size:11px;" data-i18n="strat.loading">加载策略中...</span>
+      </div>
+    </div><!-- /tab-strategy -->
+
+    <!-- Backtest Tab -->
+    <div id="tab-backtest" class="tab-content backtest-tab-full">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0;">
+        <label class="label" style="margin:0;" data-i18n="bt.title">回测</label>
+        <button class="btn" id="backtest-new-thread-btn" style="font-size:10px;padding:4px 10px;background:var(--accent);color:#fff;border:none;" data-i18n="bt.new">+ 新建</button>
+      </div>
+      <div id="backtest-thread-list" style="flex:1;overflow-y:auto;min-height:100px;">
+        <span class="no-results" style="padding:8px;font-size:11px;" data-i18n="bt.loading">加载回测中...</span>
+      </div>
+    </div><!-- /tab-backtest -->
+
+
+  </aside>
+
+  <!-- Resizable divider -->
+  <div id="panel-resizer"></div>
+
+  <!-- Right Panel -->
+  <main id="right-panel">
+    <!-- Chart -->
+    <div id="chart-container" class="chart-panel hidden">
+      <div class="chart-header">
+        <span id="chart-title" class="chart-title"></span>
+        <div class="chart-periods">
+          <button class="period-btn" data-period="1d">1D</button>
+          <button class="period-btn" data-period="5d">5D</button>
+          <button class="period-btn active" data-period="max" data-i18n="chart.all">全部</button>
+          <button class="period-btn" data-period="3mo">3M</button>
+          <button class="period-btn" data-period="6mo">6M</button>
+          <button class="period-btn" data-period="1y">1Y</button>
+        </div>
+      </div>
+      <div id="chart-kline" class="chart-pane" style="height:260px;"></div>
+      <div id="chart-volume" class="chart-pane" style="height:80px;"></div>
+      <div id="chart-macd" class="chart-pane" style="height:100px;"></div>
+      <div id="chart-rsi" class="chart-pane" style="height:80px;"></div>
+    </div>
+    <!-- Results -->
+    <div id="results-container">
+      <div id="placeholder-hint" class="placeholder-hint" data-i18n="placeholder.hint">
+        配置并运行分析，结果将显示在这里。
+      </div>
+    </div>
+    <!-- Comparison View -->
+    <div id="comparison-container" class="hidden"></div>
+
+    <!-- Skill Version Panel -->
+    <div id="skill-panel" style="display:none;flex:0 0 auto;overflow-y:auto;padding:8px;font-size:11px;border-top:1px solid var(--border);">
+      <div style="font-weight:700;font-size:12px;margin-bottom:6px;color:var(--text);" data-i18n="skill.control">分析师技能控制</div>
+      <div id="skill-version-list" style="font-size:10px;color:var(--text-muted);margin-bottom:6px;" data-i18n="common.loading">加载中...</div>
+      <div id="skill-viewer" style="display:none;margin-bottom:6px;"></div>
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px;" data-i18n="skill.generateNote">仅在审阅并批准提取的经验后生成。</div>
+      <div style="display:flex;gap:4px;">
+        <button onclick="triggerSkillGenerate()" style="flex:1;padding:4px 6px;font-size:10px;cursor:pointer;background:var(--accent);color:#fff;border:none;border-radius:4px;" data-i18n="skill.generate">生成版本</button>
+      </div>
+    </div>
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div>
+    <!-- Advisory Expanded View (right panel becomes chat area) -->
+    <div id="advisory-expanded" class="hidden" style="flex-direction:column;height:100%;">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 8px 0;flex-shrink:0;">
+        <div>
+          <span style="font-size:16px;font-weight:700;" id="adv-expanded-title" data-i18n="adv.title">CapitalRadar 顾问</span>
+          <span id="adv-expanded-subtitle" style="font-size:11px;color:var(--text-muted);margin-left:8px;" data-i18n="common.newConversation">新对话</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:10px;color:var(--text-muted);user-select:none;" data-i18n-title="adv.wechatPushTitle" title="开启后，每次网页顾问回复完成，最终答复会推送到绑定的企业微信用户私聊">
+            <input type="checkbox" id="advisory-wechat-push-toggle" style="accent-color:var(--accent);cursor:pointer;margin:0;">
+            <span data-i18n="adv.wechatPush">回复推微信</span>
+          </label>
+          <select id="advisory-wecom-channel" data-i18n-title="adv.wechatChannelTitle" title="绑定网页共享的企业微信用户" style="max-width:120px;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);cursor:pointer;">
+            <option value="" data-i18n="adv.channelNone">网页独立（不共享）</option>
+          </select>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:10px;color:var(--text-muted);user-select:none;" data-i18n-title="adv.wechatWebTitle" title="开启后，绑定用户的微信对话会实时出现在网页">
+            <input type="checkbox" id="advisory-wechat-web-toggle" style="accent-color:var(--accent);cursor:pointer;margin:0;">
+            <span data-i18n="adv.wechatWeb">微信→网页</span>
+          </label>
+          <button type="button" id="adv-wecom-manage-btn" class="btn secondary" style="font-size:11px;padding:4px 8px;white-space:nowrap;" data-i18n-title="adv.usersPanelTitle" title="管理企业微信用户与联通">👥 <span data-i18n="adv.wecomManage">管理企微用户</span></button>
+          <button id="advisory-download-md-btn" class="btn secondary" style="font-size:11px;padding:4px 8px;display:none;" data-i18n-title="common.downloadMd" title="下载 Markdown">MD</button>
+          <button id="advisory-download-docx-btn" class="btn secondary" style="font-size:11px;padding:4px 8px;display:none;" data-i18n-title="common.downloadDocx" title="下载 Word">DOCX</button>
+          <button id="advisory-collapse-btn" class="btn secondary" style="font-size:11px;padding:4px 10px;" data-i18n="adv.collapse">收起</button>
+        </div>
+      </div>
+
+      <!-- Messages area -->
+      <div id="advisory-expanded-messages" class="chat-messages" style="flex:1;overflow-y:auto;padding:16px 16px;background:var(--bg);border-radius:8px;border:1px solid var(--border);min-height:300px;">
+        <div class="chat-msg system" data-i18n-html="adv.welcome">欢迎使用 CapitalRadar 顾问。<br>开始新对话或从左侧选择一个对话。</div>
+      </div>
+
+      <!-- Status -->
+      <div id="advisory-expanded-status" style="font-size:10px;color:var(--text-muted);margin-top:4px;flex-shrink:0;"></div>
+
+      <!-- Resize handle for message/input split -->
+      <div id="advisory-resize-handle" style="height:6px;background:transparent;cursor:row-resize;flex-shrink:0;margin:4px 0;border-radius:3px;transition:background 0.15s;" data-i18n-title="common.resizeTitle" title="拖动调整大小"></div>
+
+      <!-- Input area — at bottom, resizable -->
+      <div class="chat-input-area" id="advisory-input-area" style="flex-shrink:0;border-top:1px solid var(--border);padding:10px 0 0 0;margin-top:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button type="button" class="chat-mic-btn" id="advisory-expanded-mic-btn" data-i18n-title="common.voiceInput" title="语音输入" style="font-size:16px;">&#x1F3A4;</button>
+        <input type="text" id="advisory-expanded-input" class="chat-input" data-i18n-ph="adv.inputPh" placeholder="在这里输入你的问题..." style="flex:1;min-width:200px;font-size:14px;padding:10px 14px;">
+        <button class="chat-send-btn" id="advisory-expanded-send-btn" style="font-size:14px;padding:10px 20px;" data-i18n="common.send">发送</button>
+        <button class="chat-speak-btn" id="advisory-expanded-speak-btn" data-i18n-title="common.readAloud" title="朗读" style="display:none;">&#x1F50A;</button>
+      </div>
+      <div id="advisory-expanded-voice-status" style="font-size:10px;color:var(--accent);margin-top:2px;display:none;flex-shrink:0;"></div>
+    </div>
+    <!-- AI Pick Expanded View -->
+    <div id="aipick-expanded" class="hidden" style="flex-direction:column;height:100%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 8px 0;flex-shrink:0;">
+        <div>
+          <span style="font-size:16px;font-weight:700;" id="aipick-expanded-title" data-i18n="aipick.title">AI 智能选股</span>
+          <span id="aipick-expanded-subtitle" style="font-size:11px;color:var(--text-muted);margin-left:8px;" data-i18n="common.newConversation">新对话</span>
+          <label id="aipick-rank-toggle" style="margin-left:12px;display:flex;align-items:center;gap:4px;cursor:pointer;font-size:10px;color:var(--text-muted);">
+            <input type="checkbox" id="aipick-rank-checkbox" style="margin:0;"> <span data-i18n="aipick.rankings">排名</span>
+          </label>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button id="aipick-download-md-btn" class="btn secondary" style="font-size:11px;padding:4px 8px;display:none;" data-i18n-title="common.downloadMd" title="下载 Markdown">MD</button>
+          <button id="aipick-download-pdf-btn" class="btn secondary" style="font-size:11px;padding:4px 8px;display:none;" data-i18n-title="common.downloadPdf" title="下载 PDF">PDF</button>
+          <button id="aipick-collapse-btn" class="btn secondary" style="font-size:11px;padding:4px 10px;" data-i18n="aipick.collapse">收起</button>
+        </div>
+      </div>
+      <!-- Quick Rankings -->
+      <div id="aipick-rankings" style="flex-shrink:0;display:flex;flex-direction:row;flex-wrap:nowrap;gap:8px;padding:0 0 8px 0;overflow-x:auto;min-width:540px;">
+        <div class="aipick-rank-col" id="aipick-gainers" style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:6px;overflow:hidden;">
+          <div style="background:var(--red);color:#fff;padding:4px 8px;font-size:11px;font-weight:700;" data-i18n="aipick.topGainers">涨幅榜</div>
+          <div class="aipick-rank-list" style="max-height:260px;overflow-y:auto;font-size:10px;"></div>
+        </div>
+        <div class="aipick-rank-col" id="aipick-inflow" style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:6px;overflow:hidden;">
+          <div style="background:var(--accent);color:#fff;padding:4px 8px;font-size:11px;font-weight:700;" data-i18n="aipick.topNetInflow">主力净流入榜</div>
+          <div class="aipick-rank-list" style="max-height:260px;overflow-y:auto;font-size:10px;"></div>
+        </div>
+        <div class="aipick-rank-col" id="aipick-multifactor" style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:6px;overflow:hidden;">
+          <div style="background:var(--purple);color:#fff;padding:4px 8px;font-size:11px;font-weight:700;" data-i18n="aipick.multifactor">多因子</div>
+          <div class="aipick-rank-list" style="max-height:260px;overflow-y:auto;font-size:10px;"></div>
+        </div>
+      </div>
+      <div id="aipick-expanded-messages" class="chat-messages" style="flex:1;overflow-y:auto;padding:16px 16px;background:var(--bg);border-radius:8px;border:1px solid var(--border);min-height:300px;">
+        <div class="chat-msg system" data-i18n-html="aipick.welcome">欢迎使用 AI 智能选股。<br>描述你想找的股票类型 — 智能体会生成自定义筛选策略并找到最佳匹配。</div>
+      </div>
+      <div id="aipick-expanded-status" style="font-size:10px;color:var(--text-muted);margin-top:4px;flex-shrink:0;"></div>
+      <div id="aipick-resize-handle" style="height:6px;background:transparent;cursor:row-resize;flex-shrink:0;margin:4px 0;border-radius:3px;transition:background 0.15s;" data-i18n-title="common.resizeTitle" title="拖动调整大小"></div>
+      <div class="chat-input-area" id="aipick-input-area" style="flex-shrink:0;border-top:1px solid var(--border);padding:10px 0 0 0;margin-top:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button type="button" class="chat-mic-btn" id="aipick-expanded-mic-btn" data-i18n-title="common.voiceInput" title="语音输入" style="font-size:16px;">🎤</button>
+        <input type="text" id="aipick-expanded-input" class="chat-input" data-i18n-ph="aipick.inputPh" placeholder="描述你想找的股票..." style="flex:1;min-width:200px;font-size:14px;padding:10px 14px;">
+        <button class="chat-send-btn" id="aipick-expanded-send-btn" style="font-size:14px;padding:10px 20px;" data-i18n="common.send">发送</button>
+        <button class="chat-speak-btn" id="aipick-expanded-speak-btn" data-i18n-title="common.readAloud" title="朗读" style="display:none;">🔊</button>
+      </div>
+      <div id="aipick-expanded-voice-status" style="font-size:10px;color:var(--accent);margin-top:2px;display:none;flex-shrink:0;"></div>
+    </div>
+    <!-- Prediction Expanded View -->
+    <div id="prediction-expanded" class="hidden" style="flex-direction:column;height:100%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 8px 0;flex-shrink:0;">
+        <div>
+          <span style="font-size:16px;font-weight:700;" id="pred-expanded-title" data-i18n="pred.title">预测智能体</span>
+          <span id="pred-expanded-subtitle" style="font-size:11px;color:var(--text-muted);margin-left:8px;" data-i18n="pred.newPrediction">新预测</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button id="prediction-download-md-btn" class="btn secondary" style="font-size:11px;padding:4px 8px;display:none;" data-i18n-title="common.downloadMd" title="下载 Markdown">MD</button>
+          <button id="prediction-download-pdf-btn" class="btn secondary" style="font-size:11px;padding:4px 8px;display:none;" data-i18n-title="common.downloadPdf" title="下载 PDF">PDF</button>
+          <button id="prediction-collapse-btn" class="btn secondary" style="font-size:11px;padding:4px 10px;" data-i18n="pred.collapse">收起</button>
+        </div>
+      </div>
+      <div id="prediction-expanded-messages" class="chat-messages" style="flex:1;overflow-y:auto;padding:16px 16px;background:var(--bg);border-radius:8px;border:1px solid var(--border);min-height:300px;">
+        <div class="chat-msg system" data-i18n-html="pred.welcome">欢迎使用预测智能体 🔮<br>让我预测任意A股 — 我将运行ML模型预测方向、价格区间和机构行为。</div>
+      </div>
+      <div id="prediction-expanded-status" style="font-size:10px;color:var(--text-muted);margin-top:4px;flex-shrink:0;"></div>
+      <div id="prediction-resize-handle" style="height:6px;background:transparent;cursor:row-resize;flex-shrink:0;margin:4px 0;border-radius:3px;transition:background 0.15s;" data-i18n-title="common.resizeTitle" title="拖动调整大小"></div>
+      <div class="chat-input-area" id="prediction-input-area" style="flex-shrink:0;border-top:1px solid var(--border);padding:10px 0 0 0;margin-top:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="text" id="prediction-expanded-input" class="chat-input" data-i18n-ph="pred.inputPh" placeholder="输入股票预测请求..." style="flex:1;min-width:200px;font-size:14px;padding:10px 14px;">
+        <button class="chat-send-btn" id="prediction-expanded-send-btn" style="font-size:14px;padding:10px 20px;" data-i18n="common.send">发送</button>
+      </div>
+    </div>
+
+    <!-- Strategy Expanded View -->
+    <div id="strategy-expanded" class="hidden" style="flex-direction:column;height:100%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 8px 0;flex-shrink:0;">
+        <div>
+          <span style="font-size:16px;font-weight:700;" data-i18n="strat.title">策略</span>
+          <span id="strat-expanded-subtitle" style="font-size:11px;color:var(--text-muted);margin-left:8px;" data-i18n="common.newConversation">新对话</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button id="strategy-collapse-btn" class="btn secondary" style="font-size:11px;padding:4px 10px;" data-i18n="strat.collapse">收起</button>
+        </div>
+      </div>
+      <div id="strategy-expanded-messages" class="chat-messages" style="flex:1;overflow-y:auto;padding:16px 16px;background:var(--bg);border-radius:8px;border:1px solid var(--border);min-height:300px;"></div>
+      <div id="strategy-expanded-status" style="font-size:10px;color:var(--text-muted);margin-top:2px;flex-shrink:0;"></div>
+      <div id="strategy-resize-handle" style="height:6px;background:transparent;cursor:row-resize;flex-shrink:0;margin:4px 0;border-radius:3px;transition:background 0.15s;" data-i18n-title="common.resizeTitle" title="拖动调整大小"></div>
+      <div class="chat-input-area" style="flex-shrink:0;border-top:1px solid var(--border);padding:8px 0 0 0;display:flex;gap:6px;align-items:center;">
+        <input type="text" id="strategy-expanded-input" class="chat-input" data-i18n-ph="strat.inputPh" placeholder="描述策略..." style="flex:1;min-width:200px;font-size:14px;padding:10px 14px;">
+        <button class="chat-send-btn" id="strategy-expanded-send-btn" style="font-size:14px;padding:10px 20px;" data-i18n="common.send">发送</button>
+      </div>
+    </div>
+
+    <!-- Backtest Expanded View -->
+    <div id="backtest-expanded" class="hidden" style="flex-direction:column;height:100%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 8px 0;flex-shrink:0;">
+        <div>
+          <span style="font-size:16px;font-weight:700;" data-i18n="bt.title">回测</span>
+          <span id="bt-expanded-subtitle" style="font-size:11px;color:var(--text-muted);margin-left:8px;" data-i18n="common.newConversation">新对话</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button id="backtest-collapse-btn" class="btn secondary" style="font-size:11px;padding:4px 10px;" data-i18n="bt.collapse">收起</button>
+        </div>
+      </div>
+
+
+      <div id="backtest-expanded-messages" class="chat-messages" style="flex:1;overflow-y:auto;padding:16px 16px;background:var(--bg);border-radius:8px;border:1px solid var(--border);min-height:300px;"></div>
+      <div id="backtest-expanded-status" style="font-size:10px;color:var(--text-muted);margin-top:2px;flex-shrink:0;"></div>
+      <div id="backtest-resize-handle" style="height:6px;background:transparent;cursor:row-resize;flex-shrink:0;margin:4px 0;border-radius:3px;transition:background 0.15s;" data-i18n-title="common.resizeTitle" title="拖动调整大小"></div>
+      <div class="chat-input-area" style="flex-shrink:0;border-top:1px solid var(--border);padding:8px 0 0 0;display:flex;gap:6px;align-items:center;">
+        <input type="text" id="backtest-expanded-input" class="chat-input" data-i18n-ph="bt.inputPh" placeholder="描述回测..." style="flex:1;min-width:200px;font-size:14px;padding:10px 14px;">
+        <button class="chat-send-btn" id="backtest-expanded-send-btn" style="font-size:14px;padding:10px 20px;" data-i18n="common.send">发送</button>
+      </div>
+    </div>
+
+    <!-- Scheduled Task: run-result report (shown in the right panel) -->
+    <div id="sched-expanded" style="display:none;flex-direction:column;"></div>
+
+<!-- History Agent Expanded View -->
+    <div id="ha-expanded" style="flex-direction:column;height:100%;display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 6px 0;flex-shrink:0;">
+        <div><span style="font-size:15px;font-weight:700;" data-i18n="ha.title">历史智能体</span></div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button id="ha-collapse-btn" class="btn secondary" style="font-size:10px;padding:3px 8px;" data-i18n="ha.collapse">收起</button>
+        </div>
+      </div>
+      <div id="ha-cal-bar" style="display:flex;gap:6px;padding:6px 8px;margin-bottom:6px;background:var(--panel-bg);border:1px solid var(--border);border-radius:6px;font-size:10px;align-items:center;flex-wrap:wrap;flex-shrink:0;">
+        <span id="cal-status-text" style="color:var(--text-muted);flex:1;" data-i18n="ha.calibration">系统校准：加载中...</span>
+        <button id="ha-calibration-run-btn" onclick="triggerCalibrationBtn()" style="padding:2px 8px;font-size:10px;cursor:pointer;background:var(--accent);color:#fff;border:none;border-radius:3px;" data-i18n="ha.runCalibration">运行校准</button>
+        <button id="ha-extract-experiences-btn" onclick="extractExperiencesBtn()" style="padding:2px 8px;font-size:10px;cursor:pointer;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px;" data-i18n="ha.extract">提取</button>
+      </div>
+      <div id="ha-skills-bar" style="display:none;padding:8px 10px;margin-bottom:6px;background:var(--panel-bg);border:1px solid var(--border);border-radius:6px;font-size:11px;flex-shrink:0;">
+        <span id="ha-skill-list" data-i18n="common.loading">加载中...</span>
+      </div>
+      <div id="ha-progress" style="display:none;padding:8px 12px;margin-bottom:6px;background:var(--panel-bg);border:1px solid var(--border);border-radius:6px;flex-shrink:0;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:4px;">
+          <span id="ha-progress-label" data-i18n="ha.analyzing">分析中...</span>
+          <span id="ha-progress-pct">0%</span>
+        </div>
+        <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+          <div id="ha-progress-bar" style="height:100%;width:0%;background:var(--accent);border-radius:3px;transition:width 0.3s ease;"></div>
+        </div>
+      </div>
+      <div id="ha-messages" style="flex:1;overflow-y:auto;padding:12px 14px;background:var(--bg);border-radius:8px;border:1px solid var(--border);min-height:150px;display:flex;flex-direction:column;gap:8px;">
+        <div class="chat-msg system" data-i18n="ha.welcome">欢迎使用历史智能体。使用左侧面板选择记录，然后在这里提问。</div>
+      </div>
+      <div id="ha-status" style="font-size:10px;color:var(--text-muted);margin-top:4px;flex-shrink:0;"></div>
+      <div id="ha-resize-handle" style="height:6px;background:transparent;cursor:row-resize;flex-shrink:0;margin:4px 0;border-radius:3px;transition:background 0.15s;" data-i18n-title="common.resizeTitle" title="拖动调整大小"></div>
+      <div class="chat-input-area" id="ha-input-area" style="flex-shrink:0;border-top:1px solid var(--border);padding:8px 0 0 0;display:flex;gap:8px;align-items:center;">
+        <button id="ha-download-md-btn" class="btn secondary" style="padding:4px 10px;font-size:11px;display:none;" data-i18n-title="common.downloadMdChat" title="下载对话为 Markdown">&#x21e9; MD</button>
+        <input type="text" id="ha-input" class="chat-input" data-i18n-ph="ha.inputPh" placeholder="询问分析结果..." style="flex:1;min-width:200px;font-size:14px;padding:10px 14px;">
+        <button class="chat-send-btn" id="ha-send-btn" style="font-size:14px;padding:10px 20px;" data-i18n="common.send">发送</button>
+      </div>
+    </div>
+
+      <!-- 东方自选 detail panel -->
+      <div id="emwl-detail-panel" class="hidden" style="display:flex;flex-direction:column;height:100%;padding:8px;">
+        <div id="emwl-flow-box" style="font-size:10px;max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;padding:6px;background:var(--bg);flex-shrink:0;">
+          <span style="color:var(--text-muted);" data-i18n="emwl.detailHint">点击左侧股票查看10日资金流和K线图</span>
+        </div>
+        <div id="emwl-detail-resizer" style="height:6px;background:transparent;cursor:row-resize;flex-shrink:0;margin:4px 0;border-radius:3px;transition:background 0.15s;" data-i18n-title="common.resizeTitle" title="拖动调整大小"></div>
+        <div id="emwl-chart-box" style="flex:1;min-height:200px;border:1px solid var(--border);border-radius:4px;overflow:hidden;">
+          <iframe id="emwl-chart-iframe" src="http://127.0.0.1:8005/" style="width:100%;height:100%;border:none;" data-i18n-title="common.kline" title="K线"></iframe>
+        </div>
+      </div>
+
+</main>
+</div>
+
+<script src="/static/i18n.js?v=20"></script>
+<script src="/static/history_agent.js?v=6"></script>
+<script src="/static/app.js?v=119"></script>
+<script>
+var _strategyInit=function(){
+  var i=document.getElementById("strategy-expanded-input");
+  if(i)i.addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();_sendStrategyMsg()}});
+  var b=document.getElementById("strategy-expanded-send-btn");
+  if(b)b.addEventListener("click",_sendStrategyMsg);
+  var c=document.getElementById("strategy-collapse-btn");
+  if(c)c.addEventListener("click",function(){var app=document.getElementById("app");if(app)app.classList.remove("strategy-mode");var e=document.getElementById("strategy-expanded");if(e){e.classList.add("hidden");e.style.display="none"}});
+  var n=document.getElementById("strategy-new-thread-btn");
+  if(n)n.addEventListener("click",function(){var app=document.getElementById("app");if(app)app.classList.add("strategy-mode");var e=document.getElementById("strategy-expanded");if(e){e.classList.remove("hidden");e.style.display="flex"}var m=document.getElementById("strategy-expanded-messages");if(m)m.innerHTML="";var s=document.getElementById("strat-expanded-subtitle");if(s)s.textContent=t("common.newConversation")});
+};
+function _sendStrategyMsg(){
+  var i=document.getElementById("strategy-expanded-input"),msg=i.value.trim();if(!msg)return;
+  i.value="";var c=document.getElementById("strategy-expanded-messages");
+  c.innerHTML+='<div class="chat-msg user">'+_escapeHtml(msg)+'</div>';
+  c.scrollTop=c.scrollHeight;
+  document.getElementById("strategy-expanded-status").textContent=t("strat.researching");
+  fetch("/api/strategy/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({thread_id:"strat-"+Date.now(),question:msg})}).then(function(r){return r.json()}).then(function(d){
+    new EventSource(d.stream_url).addEventListener("chat-done",function(e){if(!e.data)return;var d=JSON.parse(e.data);c.innerHTML+='<div class="chat-msg assistant">'+_escapeHtml(d.full_response)+'</div>';document.getElementById("strategy-expanded-status").textContent="";this.close()})
+  })
+}
+var _backtestInit=function(){
+  var i=document.getElementById("backtest-expanded-input");
+  if(i)i.addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();_sendBacktestMsg()}});
+  var b=document.getElementById("backtest-expanded-send-btn");
+  if(b)b.addEventListener("click",_sendBacktestMsg);
+  var c=document.getElementById("backtest-collapse-btn");
+  if(c)c.addEventListener("click",function(){var app=document.getElementById("app");if(app)app.classList.remove("backtest-mode");var e=document.getElementById("backtest-expanded");if(e){e.classList.add("hidden");e.style.display="none"}});
+  var n=document.getElementById("backtest-new-thread-btn");
+  if(n)n.addEventListener("click",function(){var app=document.getElementById("app");if(app)app.classList.add("backtest-mode");var e=document.getElementById("backtest-expanded");if(e){e.classList.remove("hidden");e.style.display="flex"}var m=document.getElementById("backtest-expanded-messages");if(m)m.innerHTML="";var s=document.getElementById("bt-expanded-subtitle");if(s)s.textContent=t("common.newConversation")});
+};
+function _sendBacktestMsg(){
+  var i=document.getElementById("backtest-expanded-input"),msg=i.value.trim();if(!msg)return;
+  i.value="";var c=document.getElementById("backtest-expanded-messages");
+  c.innerHTML+='<div class="chat-msg user">'+_escapeHtml(msg)+'</div>';
+  c.scrollTop=c.scrollHeight;
+  document.getElementById("backtest-expanded-status").textContent=t("bt.running");
+  fetch("/api/backtest/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({thread_id:"bt-"+Date.now(),question:msg})}).then(function(r){return r.json()}).then(function(d){
+    new EventSource(d.stream_url).addEventListener("chat-done",function(e){var d=JSON.parse(e.data);c.innerHTML+='<div class="chat-msg assistant">'+_escapeHtml(d.full_response)+'</div>';document.getElementById("backtest-expanded-status").textContent="";this.close()})
+  })
+}
+function _escapeHtml(s){if(!s)return "";return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",function(){_strategyInit();_backtestInit()})}else{_strategyInit();_backtestInit()}
+function quickPickQuestion(t){var app=document.getElementById("app");if(app){app.classList.remove("advisory-mode","prediction-mode","strategy-mode","backtest-mode","historyagent-mode");app.classList.add("aipick-mode")}var e=document.getElementById("aipick-expanded");if(e){e.classList.remove("hidden");e.style.display="flex"}var i=document.getElementById("aipick-expanded-input");if(i)i.value=t;var s=document.getElementById("aipick-expanded-send-btn");if(s)s.click()}
+function runDirectTool(toolName,displayLabel){var app=document.getElementById("app");if(app)app.classList.add("aipick-mode");var e=document.getElementById("aipick-expanded");if(e){e.classList.remove("hidden");e.style.display="flex"}var msgs=document.getElementById("aipick-expanded-messages");var status=document.getElementById("aipick-expanded-status");if(status)status.textContent=t("pick.runningTool",{name:displayLabel});if(msgs){var div=document.createElement("div");div.className="chat-msg system";div.innerHTML='<b>'+displayLabel+'</b> — '+t("pick.fetchingPool");msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight}
+fetch("/api/aipick/run-tool",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tool:toolName})}).then(function(r){return r.json()}).then(function(d){if(status)status.textContent="";if(msgs){var content=d.result||"";if(!content&&d.error)content="**Error**: "+d.error;if(!content)content=t("pick.noOutput");var div2=document.createElement("div");div2.className="chat-msg assistant";div2.innerHTML='<div style="font-size:12px;max-height:500px;overflow-y:auto;">'+renderMarkdown(content)+'</div>';msgs.appendChild(div2);msgs.scrollTop=msgs.scrollHeight};if(content&&content.length>200){var input=document.getElementById("aipick-expanded-input");if(input){var analyzeMsg=displayLabel==="💰 股息率选股"?"基于以上高股息TOP100股池，结合行业轮动和主力资金情况，选出最值得投资的Top 5，逐一给出理由。":"基于以上热点反转基础股池，结合未涨过头+业绩不差+主力存在的筛选标准，选出最值得投资的Top 5，逐一给出理由。";input.value=analyzeMsg;setTimeout(function(){var s=document.getElementById("aipick-expanded-send-btn");if(s)s.click()},500)}}}).catch(function(e){if(status)status.textContent="Error: "+e.message;if(msgs){var div3=document.createElement("div");div3.className="chat-msg system";div3.textContent="Failed: "+e.message;msgs.appendChild(div3);msgs.scrollTop=msgs.scrollHeight}})}
+</script>
+<script src="/static/calibration_panel.js?v=2"></script>
+<script src="/static/skill_panel.js?v=2"></script>
+<script>
+function triggerSkillGenerate() {
+  var btn = document.querySelector("#skill-panel button");
+  btn.textContent = t("skill.generating"); btn.disabled = true;
+  fetch("/api/skill/generate", {method: "POST"})
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+      alert(t("skill.generated", {version: result.version, count: result.rule_count}));
+      location.reload();
+    })
+    .catch(function(e) { alert("Failed: " + e); })
+    .finally(function() { btn.textContent = t("skill.generate"); btn.disabled = false; });
+}
+</script>
+</body>
+</html>

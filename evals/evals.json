@@ -1,0 +1,23 @@
+{
+  "skill_name": "capitalradar-analyst-core",
+  "evals": [
+    {
+      "id": 1,
+      "name": "5d-20d-rating-consistency",
+      "prompt": "你正在运行 CapitalRadar 深度分析管线的 Portfolio Manager 节点。ML 预测报告显示：5天方向看涨（概率57%），20天方向看跌（概率88%）。资金流报告显示过去60天主力净流出1.41亿，6月26日有单日机构逆势净买入1027万。风险分析师辩论中，激进分析师主张"抄底"，保守分析师要求"清仓"，中立分析师建议"观望"。当前价格12.51元。请给出最终交易决策，包含 rating、5天展望、20天展望、置信度和投资论点。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "capital-flow-anchor-analysis",
+      "prompt": "你正在运行 CapitalRadar 的 Capital Flow Analyst 节点。分析的标的是 600519.SH（贵州茅台），当前日期 2026-06-27。请使用 get_money_flow 和 get_hsgt_flow 工具分析主力资金动向，提供包含（1）主力资金方向（2）北向资金趋势（3）操纵风险评估的完整报告。至少需要60天数据窗口。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "mentor-experience-extraction",
+      "prompt": "你正在运行 CapitalRadar 的 Mentor（历史经验提炼）节点。以下是一次完整的分析结果记录：Rating: Underweight。5天展望: bullish(57%) target 18.50-19.00。20天展望: bearish(88%) test 14.74-16.49。实际结果：20天后股价跌至15.20元，Underweight 正确。请从这次记录中提取可复用的经验，格式为---EXPERIENCE---块，包含 category, abstract, content。",
+      "files": []
+    }
+  ]
+}
