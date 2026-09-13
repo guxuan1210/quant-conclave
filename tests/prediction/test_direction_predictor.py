@@ -4,9 +4,9 @@ from unittest.mock import patch, MagicMock
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-from capitalradar.prediction.direction_predictor import DirectionPredictor
-from capitalradar.prediction.schemas import DirectionOutput, PredictionHorizon, ConfidenceTier
-from capitalradar.prediction.feature_engine import FEATURE_COLUMNS
+from quantconclave.prediction.direction_predictor import DirectionPredictor
+from quantconclave.prediction.schemas import DirectionOutput, PredictionHorizon, ConfidenceTier
+from quantconclave.prediction.feature_engine import FEATURE_COLUMNS
 
 
 class TestDirectionPredictor:

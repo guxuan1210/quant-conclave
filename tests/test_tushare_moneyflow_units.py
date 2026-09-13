@@ -19,7 +19,7 @@ import re
 import pandas as pd
 import pytest
 
-from capitalradar.dataflows import tushare_data
+from quantconclave.dataflows import tushare_data
 
 
 def _fake_pro(df):

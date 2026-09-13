@@ -19,12 +19,12 @@ Pins the 002696 bug + the 5 fixes:
 
 from __future__ import annotations
 
-import capitalradar.agents.utils.capital_flow_tools as cft
-import capitalradar.sector_scan.moneyflow_verifier as mv
-import capitalradar.sector_scan.smart_money_score as sms
+import quantconclave.agents.utils.capital_flow_tools as cft
+import quantconclave.sector_scan.moneyflow_verifier as mv
+import quantconclave.sector_scan.smart_money_score as sms
 import pytest
 
-from capitalradar.sector_scan.smart_money_score import (
+from quantconclave.sector_scan.smart_money_score import (
     _dual_source_gate,
     _fetch_flow_data,
     _is_limit_up_day,

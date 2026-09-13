@@ -57,7 +57,7 @@ def _search_analyses(config: dict, run_ids: list[str] = None, ticker: str = None
 
 def _get_experience_history(config: dict) -> list[dict]:
     """Get existing experiences for dedup context."""
-    from capitalradar.advisory.experience_store import list_experiences
+    from quantconclave.advisory.experience_store import list_experiences
     try:
         all_exp = list_experiences()
         return all_exp[:30]
@@ -73,13 +73,13 @@ async def stream_history_agent_chat(
     lang: str = "Chinese",
 ):
     """SSE generator for History Agent chat."""
-    from capitalradar.llm_clients import create_llm_client, resolve_role_llm
-    from capitalradar.advisory.history_agent import (
+    from quantconclave.llm_clients import create_llm_client, resolve_role_llm
+    from quantconclave.advisory.history_agent import (
         build_history_agent_prompt,
         save_experiences_from_response,
         build_history_agent_tools,
     )
-    from capitalradar.default_config import DEFAULT_CONFIG
+    from quantconclave.default_config import DEFAULT_CONFIG
     from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 
     cfg = config or DEFAULT_CONFIG
@@ -181,7 +181,7 @@ async def stream_chat(
     run_ids: str = Query(""),
 ):
     """SSE streaming endpoint for History Agent chat."""
-    from capitalradar.default_config import DEFAULT_CONFIG as config
+    from quantconclave.default_config import DEFAULT_CONFIG as config
     lang = config.get("output_language", "Chinese")
 
     # Parse run_ids from comma-separated string
@@ -204,7 +204,7 @@ async def search_analyses(
     limit: int = Query(50),
 ):
     """Search analysis records for selection."""
-    from capitalradar.default_config import DEFAULT_CONFIG as config
+    from quantconclave.default_config import DEFAULT_CONFIG as config
     records = _search_analyses(config, ticker=ticker, limit=limit)
     return records
 
@@ -212,6 +212,6 @@ async def search_analyses(
 @router.get("/all")
 async def list_analyses(limit: int = Query(50)):
     """List all analysis records."""
-    from capitalradar.default_config import DEFAULT_CONFIG as config
+    from quantconclave.default_config import DEFAULT_CONFIG as config
     records = _search_analyses(config, limit=limit)
     return records

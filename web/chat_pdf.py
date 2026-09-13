@@ -1,4 +1,4 @@
-"""PDF report generator for CapitalRadar advisory conversations and analysis reports.
+"""PDF report generator for QuantConclave advisory conversations and analysis reports.
 
 Uses fpdf2 (v2.8.7+) with Unicode font support for Chinese text.
 Registered font: FangSong (simfang.ttf) for CJK rendering, with Helvetica fallback.
@@ -37,7 +37,7 @@ def _find_chinese_font() -> tuple[str, str, str]:
 
 
 class ChatPDF(FPDF):
-    """PDF with CJK support for CapitalRadar reports."""
+    """PDF with CJK support for QuantConclave reports."""
 
     def __init__(self):
         super().__init__()
@@ -72,7 +72,7 @@ class ChatPDF(FPDF):
     def header(self):
         self._set_cjk_font("B", 10)
         self.set_text_color(9, 105, 218)
-        self.cell(0, 6, "CapitalRadar Advisory Report", align="L")
+        self.cell(0, 6, "QuantConclave Advisory Report", align="L")
         self.ln(3)
         self.set_draw_color(9, 105, 218)
         self.line(self.l_margin, self.get_y(), self.w - self.r_margin, self.get_y())

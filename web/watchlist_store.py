@@ -9,7 +9,7 @@ Stores three kinds of data in the shared ``results.db``:
   (code + analyzed_at) so the full history of each analysis is retained.
 
 Reuses ``results_store._get_conn`` / ``_get_db_path`` so WAL, row_factory and
-the DB path (``~/.capitalradar/logs/results.db``) stay consistent with the rest
+the DB path (``~/.quantconclave/logs/results.db``) stay consistent with the rest
 of the dashboard.
 """
 
@@ -499,7 +499,7 @@ def _snapshot_closes_by_day(
     fetch (N × ~0.10s) into a handful of ~0.34s calls. Days whose snapshot
     fails are omitted so callers fall back to the per-code path.
     """
-    from capitalradar.dataflows.tushare_data import _get_pro
+    from quantconclave.dataflows.tushare_data import _get_pro
 
     pro = _get_pro()
     out: dict[str, dict[str, float]] = {}
@@ -529,7 +529,7 @@ def prefetch_close_cache(
     its analysis day still gets the nearest prior close — the same semantics
     as the per-code fallback. Returns the number of cache rows written.
     """
-    from capitalradar.dataflows.tushare_data import _format_ticker_ts
+    from quantconclave.dataflows.tushare_data import _format_ticker_ts
 
     by_day: dict[str, list[tuple[str, str]]] = {}
     for code, analyzed_at in pairs:
@@ -620,8 +620,8 @@ def attach_analysis_to_stocks(
     def _cached_close(code: str, date_str: str) -> float | None:
         """Return close price on date, using the DB-backed cache first."""
         import datetime as _dt
-        from capitalradar.backtest.data import parse_ohlcv_csv
-        from capitalradar.dataflows.interface import route_to_vendor
+        from quantconclave.backtest.data import parse_ohlcv_csv
+        from quantconclave.dataflows.interface import route_to_vendor
 
         try:
             target = _dt.date.fromisoformat(date_str[:10])
@@ -725,8 +725,8 @@ def _fetch_close_on_date(code: str, date_str: str) -> Optional[float]:
     Uses the vendor chain (tushare/akshare) historical daily bars. Returns
     None when the data is unavailable.
     """
-    from capitalradar.backtest.data import parse_ohlcv_csv
-    from capitalradar.dataflows.interface import route_to_vendor
+    from quantconclave.backtest.data import parse_ohlcv_csv
+    from quantconclave.dataflows.interface import route_to_vendor
     import datetime
 
     try:
@@ -762,7 +762,7 @@ def _fetch_current_price(code: str) -> Optional[float]:
     """Fetch the latest real-time price from Tencent (qt.gtimg.cn)."""
     import requests
     try:
-        from capitalradar.dataflows.tencent_realtime import _normalize_symbol
+        from quantconclave.dataflows.tencent_realtime import _normalize_symbol
         norm = _normalize_symbol(code)
         resp = requests.get(f"http://qt.gtimg.cn/q={norm}", timeout=6)
         resp.encoding = "gbk"

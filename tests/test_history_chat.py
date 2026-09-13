@@ -190,7 +190,7 @@ def test_parse_quote_price_tencent_and_plain():
 def test_verify_advisor_facts_appends_live_quotes(monkeypatch):
     from web import history_chat as hc
     monkeypatch.setattr(
-        "capitalradar.dataflows.interface.route_to_vendor",
+        "quantconclave.dataflows.interface.route_to_vendor",
         lambda method, symbol="": "**Current Price**: 24.35\n**Change**: +0.24 / 2.28%\n",
     )
     out = hc._verify_advisor_facts(
@@ -218,7 +218,7 @@ def test_verify_advisor_facts_fetch_failure_marks_unavailable(monkeypatch):
     def boom(method, symbol=""):
         raise ConnectionError("network down")
 
-    monkeypatch.setattr("capitalradar.dataflows.interface.route_to_vendor", boom)
+    monkeypatch.setattr("quantconclave.dataflows.interface.route_to_vendor", boom)
     out = hc._verify_advisor_facts("600030 看多", {})
     assert "实时行情暂不可用" in out
     assert "600030" in out
@@ -227,7 +227,7 @@ def test_verify_advisor_facts_fetch_failure_marks_unavailable(monkeypatch):
 def test_verify_advisor_facts_vendor_fallback_marks_unavailable(monkeypatch):
     from web import history_chat as hc
     monkeypatch.setattr(
-        "capitalradar.dataflows.interface.route_to_vendor",
+        "quantconclave.dataflows.interface.route_to_vendor",
         lambda method, symbol="": "# SKIP_VENDOR: no data",
     )
     out = hc._verify_advisor_facts("600030 看多", {})
@@ -273,7 +273,7 @@ def test_core_appends_verify_footer_before_persist(monkeypatch):
 def test_advisor_sms_tool_renders_data_unavailable(monkeypatch):
     """When the SMS engine flags _data_unavailable, the advisor's SMS tool must
     say 数据不可用/verify_moneyflow — never the bearish 主力参与度不足."""
-    import capitalradar.sector_scan.smart_money_score as sms
+    import quantconclave.sector_scan.smart_money_score as sms
     from web.ai_pick_agent import build_aipick_tools
 
     def fake_compute(ticker, config):

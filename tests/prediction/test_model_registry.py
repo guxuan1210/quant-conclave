@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 import xgboost as xgb
 import numpy as np
-from capitalradar.prediction.model_registry import ModelRegistry
+from quantconclave.prediction.model_registry import ModelRegistry
 
 
 class TestModelRegistry:

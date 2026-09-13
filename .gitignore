@@ -26,12 +26,13 @@ Thumbs.db
 *.env.local
 
 # User data
+.quantconclave/
 .capitalradar/
 .tradingagents/
 results/
 logs/
 
-# Claude / internal — un-ignore the capitalradar analyst skill
+# Claude / internal — un-ignore the quantconclave analyst skill
 .claude/
 !.claude/skills/analyst-core/
 __TRACKED_VAR__/

@@ -2,7 +2,7 @@
 
 Calls the FastAPI handlers directly with a SchedulerManager injected on a temp
 store and a patched ``_log_task_audit`` capturing audit writes — no network,
-no TestClient, no writes to the real ~/.capitalradar audit DB.
+no TestClient, no writes to the real ~/.quantconclave audit DB.
 """
 
 from __future__ import annotations

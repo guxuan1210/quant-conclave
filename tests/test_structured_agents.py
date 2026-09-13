@@ -11,8 +11,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from capitalradar.agents.managers.research_manager import create_research_manager
-from capitalradar.agents.schemas import (
+from quantconclave.agents.managers.research_manager import create_research_manager
+from quantconclave.agents.schemas import (
     PortfolioRating,
     ResearchPlan,
     TraderAction,
@@ -20,7 +20,7 @@ from capitalradar.agents.schemas import (
     render_research_plan,
     render_trader_proposal,
 )
-from capitalradar.agents.trader.trader import create_trader
+from quantconclave.agents.trader.trader import create_trader
 
 
 # ---------------------------------------------------------------------------

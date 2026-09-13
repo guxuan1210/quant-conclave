@@ -113,8 +113,8 @@ def diff_versions(v1: int = Query(...), v2: int = Query(...)):
 @router.post("/generate")
 def trigger_generate():
     """Manually trigger skill version generation."""
-    from capitalradar.graph.skill_generator import generate_skill_version
-    from capitalradar.default_config import DEFAULT_CONFIG as config
+    from quantconclave.graph.skill_generator import generate_skill_version
+    from quantconclave.default_config import DEFAULT_CONFIG as config
     result = generate_skill_version(config)
     return result
 

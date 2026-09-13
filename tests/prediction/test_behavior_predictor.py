@@ -1,8 +1,8 @@
 """Tests for BehaviorPredictor."""
 import pytest
 from unittest.mock import MagicMock, patch
-from capitalradar.prediction.behavior_predictor import BehaviorPredictor
-from capitalradar.prediction.schemas import (
+from quantconclave.prediction.behavior_predictor import BehaviorPredictor
+from quantconclave.prediction.schemas import (
     BehaviorOutput, BehaviorPhase, ConfidenceTier,
 )
 

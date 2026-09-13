@@ -152,7 +152,7 @@ def test_deep_branch_pushes_after_persist(monkeypatch):
         def propagate(self, ticker, date):
             return {"final_trade_decision": "评级：买入"}, "买入信号"
 
-    monkeypatch.setattr("capitalradar.graph.trading_graph.CapitalRadarGraph",
+    monkeypatch.setattr("quantconclave.graph.trading_graph.QuantConclaveGraph",
                         FakeGraph)
     monkeypatch.setattr("web.ticker_utils.resolve_company_name",
                         lambda t: ("600036", "招商银行"))
@@ -225,7 +225,7 @@ def test_deep_branch_failure_pushes_failure_card(monkeypatch):
         def propagate(self, ticker, date):
             raise TimeoutError("llm 超时")
 
-    monkeypatch.setattr("capitalradar.graph.trading_graph.CapitalRadarGraph",
+    monkeypatch.setattr("quantconclave.graph.trading_graph.QuantConclaveGraph",
                         BoomGraph)
     task_data = {
         "job_id": "deep-1",

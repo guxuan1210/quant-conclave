@@ -15,7 +15,7 @@ fail the scheduled run itself.
 import logging
 import urllib.parse
 
-from capitalradar.dataflows.config import get_config
+from quantconclave.dataflows.config import get_config
 
 logger = logging.getLogger(__name__)
 

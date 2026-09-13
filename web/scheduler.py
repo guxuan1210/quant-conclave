@@ -1,4 +1,4 @@
-"""Task scheduler for the CapitalRadar web dashboard.
+"""Task scheduler for the QuantConclave web dashboard.
 
 Uses APScheduler with SQLAlchemyJobStore to persist scheduled tasks across
 server restarts. Runs the analysis pipeline in background threads.
@@ -376,7 +376,7 @@ def _execute_scheduled_analysis_dispatch(task_data: dict) -> None:
     job_id = task_data.get("job_id", "")
     ttype = task_data.get("task_type", "deep")
     if ttype in ("emwl_batch", "idx_batch"):
-        from capitalradar.default_config import DEFAULT_CONFIG
+        from quantconclave.default_config import DEFAULT_CONFIG
         from web.scheduled_batch import run_batch_task
         from web.wecom_push import push_run_result
         try:
@@ -395,10 +395,10 @@ def _execute_scheduled_analysis_dispatch(task_data: dict) -> None:
         _push_res = push_run_result(task_data, summary, ttype)
         _log_push_result(task_data, ttype, _push_res)
         return
-    from capitalradar.graph.trading_graph import CapitalRadarGraph
-    from capitalradar.default_config import DEFAULT_CONFIG
-    from capitalradar.agents.utils.rating import parse_rating
-    from capitalradar.llm_clients import resolve_role_llm
+    from quantconclave.graph.trading_graph import QuantConclaveGraph
+    from quantconclave.default_config import DEFAULT_CONFIG
+    from quantconclave.agents.utils.rating import parse_rating
+    from quantconclave.llm_clients import resolve_role_llm
     from web.results_store import save_result
 
     ticker = task_data["ticker"]
@@ -431,7 +431,7 @@ def _execute_scheduled_analysis_dispatch(task_data: dict) -> None:
 
     run_progress.start(job_id, phase="deep", total=0)
 
-    ta = CapitalRadarGraph(
+    ta = QuantConclaveGraph(
         selected_analysts=analysts,
         debug=False,
         config=cfg,
@@ -456,7 +456,7 @@ def _execute_scheduled_analysis_dispatch(task_data: dict) -> None:
 
     results_dir = cfg.get("results_dir", "")
     ticker_safe = ticker.upper()
-    json_rel = f"{ticker_safe}/CapitalRadarStrategy_logs/full_states_log_{date_str}.json"
+    json_rel = f"{ticker_safe}/QuantConclaveStrategy_logs/full_states_log_{date_str}.json"
 
     from web.ticker_utils import resolve_company_name
     ticker_norm, company_name = resolve_company_name(ticker)

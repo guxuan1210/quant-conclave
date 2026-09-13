@@ -2,7 +2,7 @@
 
 import pytest
 
-from capitalradar.llm_clients.capabilities import (
+from quantconclave.llm_clients.capabilities import (
     ModelCapabilities,
     get_capabilities,
 )

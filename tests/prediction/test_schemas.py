@@ -1,6 +1,6 @@
 """Tests for prediction schemas."""
 import pytest
-from capitalradar.prediction.schemas import (
+from quantconclave.prediction.schemas import (
     PredictionReport, PriceRangeOutput, DirectionOutput,
     BehaviorOutput, BehaviorPhase, ConfidenceTier,
     PredictionHorizon, CrossValidationVerdict,

@@ -6,11 +6,11 @@ from typing import Generator, Optional, Annotated
 from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from web.results_store import get_chat_messages, save_chat_message
-from capitalradar.backtest.templates import list_templates, get_template
-from capitalradar.backtest.strategies import get_strategy_class, SIGNAL_MAP
-from capitalradar.backtest.engine import run_backtest
-from capitalradar.backtest.report import compute_performance
-from capitalradar.strategy.generator import compile_signal, StrategyGenerationError
+from quantconclave.backtest.templates import list_templates, get_template
+from quantconclave.backtest.strategies import get_strategy_class, SIGNAL_MAP
+from quantconclave.backtest.engine import run_backtest
+from quantconclave.backtest.report import compute_performance
+from quantconclave.strategy.generator import compile_signal, StrategyGenerationError
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ def build_backtest_system_prompt(config: dict, lang: str = "Chinese") -> str:
     today = datetime.now()
     tmpl_list = "\n".join(f"  - {t['name']} ({t['id']}): {t['description']}" for t in list_templates())
     return (
-        f"You are the CapitalRadar Backtesting Agent, specialized in running and "
+        f"You are the QuantConclave Backtesting Agent, specialized in running and "
         f"analyzing trading strategy backtests with a fast vectorized engine.\n\n"
         f"**Current date**: {today.strftime('%Y-%m-%d')}\n\n"
         f"## Available Templates\n{tmpl_list}\n\n"
@@ -86,7 +86,7 @@ def build_backtest_tools(config: dict, llm):
 
 
 def create_backtest_agent(config, lang=None):
-    from capitalradar.llm_clients import create_llm_client, resolve_role_llm
+    from quantconclave.llm_clients import create_llm_client, resolve_role_llm
     provider, model, _ = resolve_role_llm(config, "deep")
     client = create_llm_client(provider=provider, model=model, base_url=config.get("backend_url"), timeout=120)
     llm = client.get_llm()

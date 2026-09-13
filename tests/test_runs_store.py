@@ -6,7 +6,7 @@ import sqlite3
 
 import pytest
 
-from capitalradar.backtest import runs
+from quantconclave.backtest import runs
 
 
 def _conn_for(path):

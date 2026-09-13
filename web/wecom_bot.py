@@ -40,7 +40,7 @@ from concurrent.futures import Future
 
 from websocket import WebSocketTimeoutException
 
-from capitalradar.dataflows.config import get_config
+from quantconclave.dataflows.config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -565,7 +565,7 @@ class WeComBot:
         except Exception:  # noqa: BLE001
             results_dir = ""
         if not results_dir:
-            results_dir = os.path.expanduser("~/.capitalradar/logs")
+            results_dir = os.path.expanduser("~/.quantconclave/logs")
         return os.path.join(results_dir, "wecom_bot_targets.json")
 
     def _load_targets(self):

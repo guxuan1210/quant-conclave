@@ -1,7 +1,7 @@
-from capitalradar.graph.trading_graph import CapitalRadarGraph
-from capitalradar.default_config import DEFAULT_CONFIG
+from quantconclave.graph.trading_graph import QuantConclaveGraph
+from quantconclave.default_config import DEFAULT_CONFIG
 
-# DEFAULT_CONFIG already applies CAPITALRADAR_* env-var overrides
+# DEFAULT_CONFIG already applies QUANTCONCLAVE_* env-var overrides
 # (llm_provider, deep_think_llm, quick_think_llm, backend_url, etc.),
 # so users can switch models or endpoints purely via .env without
 # editing this script. Override individual keys here only when you
@@ -9,7 +9,7 @@ from capitalradar.default_config import DEFAULT_CONFIG
 config = DEFAULT_CONFIG.copy()
 
 # Initialize with custom config
-ta = CapitalRadarGraph(debug=False, config=config)
+ta = QuantConclaveGraph(debug=False, config=config)
 
 # forward propagate
 _, decision = ta.propagate("NVDA", "2024-05-10")

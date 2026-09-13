@@ -15,7 +15,7 @@ from fastapi import APIRouter, Query, HTTPException
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 
-from capitalradar.default_config import DEFAULT_CONFIG
+from quantconclave.default_config import DEFAULT_CONFIG
 from web.results_store import (
     list_results,
     get_result,
@@ -235,7 +235,7 @@ def download_chat_thread(run_id: str, thread_id: str, format: str = Query(defaul
                 pass
         a("---")
         a("")
-    a(f"*Chat exported from CapitalRadar*")
+    a(f"*Chat exported from QuantConclave*")
 
     return Response(
         content="\n".join(lines),

@@ -1,11 +1,11 @@
-﻿"""Results persistence layer for the CapitalRadar web dashboard.
+﻿"""Results persistence layer for the QuantConclave web dashboard.
 
 Stores analysis run metadata in SQLite at {results_dir}/results.db, with
 full state JSONs referenced by relative path (reusing the existing JSON
-log files written by CapitalRadarGraph._log_state()).
+log files written by QuantConclaveGraph._log_state()).
 
 The database path, connection factory, and legacy-DB migration are owned by
-:mod:`capitalradar.workspace.store` — this module owns only the results
+:mod:`quantconclave.workspace.store` — this module owns only the results
 schema and the domain CRUD that reads/writes it.
 """
 
@@ -17,7 +17,7 @@ import uuid
 from pathlib import Path
 from typing import Optional
 
-from capitalradar.workspace.store import get_connection, get_db_path
+from quantconclave.workspace.store import get_connection, get_db_path
 
 logger = logging.getLogger(__name__)
 
@@ -978,7 +978,7 @@ def resolve_picks(config: dict) -> int:
     no longer shows 0.00. If every source fails the pick stays PENDING
     (return_60d NULL) — we never write a bogus zero.
     """
-    from capitalradar.hot_tracker.price_source import (
+    from quantconclave.hot_tracker.price_source import (
         PriceFetchError, fetch_latest_price,
     )
 
@@ -1040,7 +1040,7 @@ def resolve_picks(config: dict) -> int:
 def _backfill_pick_price(ts_code: str, pick_date: str) -> float | None:
     """Find the close price on/near pick_date from history (for pick_price=0 rows)."""
     try:
-        from capitalradar.hot_tracker.price_source import fetch_price_history
+        from quantconclave.hot_tracker.price_source import fetch_price_history
         rows = fetch_price_history(ts_code, days=90)
         for r in rows:
             if r["date"] >= pick_date and r["close"] > 0:

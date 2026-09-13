@@ -12,7 +12,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from capitalradar.dataflows import eastmoney_microcap as em
+from quantconclave.dataflows import eastmoney_microcap as em
 
 
 def _weekdays(end: date, n: int = 150) -> tuple:

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-import capitalradar.graph.skill_generator as sg
+import quantconclave.graph.skill_generator as sg
 
 
 @pytest.fixture()
@@ -63,7 +63,7 @@ def test_grouping_by_category(isolated_skill_dir):
 
 def test_max_rules_cap_archives_oldest(monkeypatch, isolated_skill_dir):
     """31 experiences → only 30 survive; the oldest is archived."""
-    from capitalradar.advisory import experience_store as es
+    from quantconclave.advisory import experience_store as es
     archived_ids = []
     monkeypatch.setattr(sg, "MAX_RULES", 30)
     monkeypatch.setattr(sg, "AUTO_ARCHIVE_TRIM", True)
@@ -101,7 +101,7 @@ def test_template_slice_markers_preserved(isolated_skill_dir):
 
 
 def test_generate_writes_version_and_activates(monkeypatch, isolated_skill_dir):
-    from capitalradar.advisory import experience_store as es
+    from quantconclave.advisory import experience_store as es
     monkeypatch.setattr(es, "list_experiences", lambda status="": [
         _exp(1, "Active flow rule", "flow_rule", "capital_flow", "2026-07-01"),
     ])

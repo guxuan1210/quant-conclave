@@ -1,4 +1,4 @@
-"""SSE streaming adapter for CapitalRadar / CapitalRadarGraph.
+"""SSE streaming adapter for QuantConclave / QuantConclaveGraph.
 
 Calls graph.stream() in up to three segments, pausing at configurable
 human-in-the-loop checkpoints. At each active checkpoint the emitter
@@ -17,9 +17,9 @@ from typing import Dict, Any, Generator, Optional
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.errors import GraphRecursionError
 
-from capitalradar.graph.trading_graph import CapitalRadarGraph
-from capitalradar.default_config import DEFAULT_CONFIG
-from capitalradar.agents.utils.rating import parse_rating
+from quantconclave.graph.trading_graph import QuantConclaveGraph
+from quantconclave.default_config import DEFAULT_CONFIG
+from quantconclave.agents.utils.rating import parse_rating
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ STAGES = [
     ("portfolio", "Portfolio Manager"),
 ]
 
-from capitalradar.catalog import ANALYST_ROLES
+from quantconclave.catalog import ANALYST_ROLES
 ANALYST_REPORT_KEYS = {key: role.report_key for key, role in ANALYST_ROLES.items()}
 ANALYST_NAMES = {key: role.label for key, role in ANALYST_ROLES.items()}
 
@@ -165,7 +165,7 @@ def _extract_final_manipulation_summary(text: str) -> str:
 
 
 class StreamEmitter:
-    """Wraps a CapitalRadarGraph run and emits SSE events with optional human-in-the-loop checkpoints."""
+    """Wraps a QuantConclaveGraph run and emits SSE events with optional human-in-the-loop checkpoints."""
 
     def __init__(self, config: Optional[Dict[str, Any]] = None, session_id: Optional[str] = None):
         self.config = config or DEFAULT_CONFIG.copy()
@@ -262,7 +262,7 @@ class StreamEmitter:
         })
 
         try:
-            ta = CapitalRadarGraph(
+            ta = QuantConclaveGraph(
                 selected_analysts=analysts,
                 debug=False,
                 config=cfg,
@@ -442,12 +442,12 @@ class StreamEmitter:
         # Persist result so it appears in History and survives restarts.
         try:
             from web.results_store import save_result
-            from capitalradar.agents.utils.rating import parse_rating
+            from quantconclave.agents.utils.rating import parse_rating
 
             # Save full state JSON (reuses _log_state pattern)
             ticker_safe = ticker.upper()
-            json_rel = f"{ticker_safe}/CapitalRadarStrategy_logs/full_states_log_{date}.json"
-            md_rel = f"{ticker_safe}/CapitalRadarStrategy_logs/full_report_{date}.md"
+            json_rel = f"{ticker_safe}/QuantConclaveStrategy_logs/full_states_log_{date}.json"
+            md_rel = f"{ticker_safe}/QuantConclaveStrategy_logs/full_report_{date}.md"
             session_data = _session_results.get(self.session_id, {})
             results_dir = cfg.get("results_dir") or ""
             if results_dir:
@@ -479,7 +479,7 @@ class StreamEmitter:
             rating = parse_rating(final_decision)
             next_date = _extract_next_analysis_date(final_decision, date)
             from web.ticker_utils import resolve_company_name, normalize_ticker
-            from capitalradar.llm_clients import resolve_role_llm
+            from quantconclave.llm_clients import resolve_role_llm
             ticker_norm, company_name = resolve_company_name(ticker)
             save_result(cfg, {
                 "ticker": ticker_norm or ticker,
@@ -618,7 +618,7 @@ class StreamEmitter:
     ) -> str:
         """Generate a Portfolio Manager chat response using the deep-thinking LLM
         with full analysis context and recent conversation history."""
-        from capitalradar.llm_clients import create_llm_client, resolve_role_llm
+        from quantconclave.llm_clients import create_llm_client, resolve_role_llm
 
         provider, model, _ = resolve_role_llm(cfg, "deep", model_default=cfg.get("quick_think_llm", ""))
         client = create_llm_client(
@@ -637,7 +637,7 @@ class StreamEmitter:
         lang = cfg.get("output_language", "Chinese")
 
         system_prompt = (
-            f"You are the Portfolio Manager from the CapitalRadar trading analysis system. "
+            f"You are the Portfolio Manager from the QuantConclave trading analysis system. "
             f"The user has just received your final trading decision and wants to ask follow-up questions.\n\n"
             f"**Current Analysis Context:**\n"
             f"- Ticker: {context.get('ticker', 'N/A')}\n"
@@ -1009,7 +1009,7 @@ class StreamEmitter:
 
         # Drain any progress events from the parallel analyst runner
         try:
-            from capitalradar.graph.parallel_analyst_runner import drain_progress_events as _drain
+            from quantconclave.graph.parallel_analyst_runner import drain_progress_events as _drain
             for pe in _drain():
                 yield _event("analyst-progress", {
                     "analyst": pe["analyst"],
@@ -1206,7 +1206,7 @@ def generate_markdown(session_id: str) -> str:
     lines = []
     a = lines.append
 
-    a(f"# CapitalRadar Analysis Report")
+    a(f"# QuantConclave Analysis Report")
     a("")
     a(f"**Ticker:** {data.get('ticker', 'N/A')}  ")
     a(f"**Date:** {data.get('date', 'N/A')}  ")
@@ -1220,7 +1220,7 @@ def generate_markdown(session_id: str) -> str:
     if reports:
         a("## Analyst Reports")
         a("")
-        from capitalradar.catalog import ANALYST_ORDER, ANALYST_ROLES
+        from quantconclave.catalog import ANALYST_ORDER, ANALYST_ROLES
         analyst_titles = {key: ANALYST_ROLES[key].label for key in ANALYST_ORDER}
         for key in ANALYST_ORDER:
             report = reports.get(key, "")
@@ -1387,7 +1387,7 @@ def generate_markdown(session_id: str) -> str:
     a("")
     a("---")
     a("")
-    a("*Report generated by CapitalRadar*")
+    a("*Report generated by QuantConclave*")
 
     return "\n".join(lines)
 

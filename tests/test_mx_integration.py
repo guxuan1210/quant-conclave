@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import pytest
 
-from capitalradar.dataflows import mx_client
-from capitalradar.dataflows import block_trade_data
+from quantconclave.dataflows import mx_client
+from quantconclave.dataflows import block_trade_data
 
 
 # ── Canned MX response shapes (as returned by the live API) ──────────────
@@ -170,10 +170,10 @@ def test_mx_block_report_inst_buy_signal():
 # ── smart_money_score: MX realtime fallback ─────────────────────────────
 
 def test_smart_money_realtime_uses_mx(monkeypatch):
-    from capitalradar.sector_scan import smart_money_score
+    from quantconclave.sector_scan import smart_money_score
     monkeypatch.setattr(mx_client, "query", lambda *a, **k: _money_flow_response())
     monkeypatch.setattr(
-        "capitalradar.dataflows.eastmoney_realtime_flow._get_realtime_fund_flow",
+        "quantconclave.dataflows.eastmoney_realtime_flow._get_realtime_fund_flow",
         lambda *a, **k: pytest.fail("push2 fallback should not be called"),
     )
     rows = smart_money_score._fetch_realtime_flow_signal("600519.SH")
@@ -189,10 +189,10 @@ def test_smart_money_realtime_uses_mx(monkeypatch):
 
 
 def test_smart_money_realtime_mx_empty_uses_push2(monkeypatch):
-    from capitalradar.sector_scan import smart_money_score
+    from quantconclave.sector_scan import smart_money_score
     monkeypatch.setattr(mx_client, "query", lambda *a, **k: {"data": {}})
     monkeypatch.setattr(
-        "capitalradar.dataflows.eastmoney_realtime_flow._get_realtime_fund_flow",
+        "quantconclave.dataflows.eastmoney_realtime_flow._get_realtime_fund_flow",
         lambda *a, **k: {
             "main_net_inflow": 123.0, "super_large_net": 80.0,
             "large_net": 43.0, "price": 10.5,
@@ -207,7 +207,7 @@ def test_smart_money_realtime_mx_empty_uses_push2(monkeypatch):
 # ── batch_analysis: MX 实时DDX enrichment ───────────────────────────────
 
 def test_batch_analysis_candidate_gets_mx_ddx(monkeypatch):
-    from capitalradar.sector_scan import batch_analysis
+    from quantconclave.sector_scan import batch_analysis
     monkeypatch.setattr(mx_client, "query", lambda *a, **k: _money_flow_response())
     # stub K-line + moneyflow so only the MX enrichment is under test
     monkeypatch.setattr(batch_analysis, "get_stock_daily", lambda *a, **k: [])

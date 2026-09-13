@@ -2,7 +2,7 @@ import unittest
 
 from cli.models import AnalystType, AssetType
 from cli.utils import detect_asset_type, filter_analysts_for_asset_type
-from capitalradar.graph.propagation import Propagator
+from quantconclave.graph.propagation import Propagator
 
 
 class CryptoAssetModeTests(unittest.TestCase):

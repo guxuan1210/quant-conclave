@@ -10,7 +10,7 @@ These records are:
     (``get_twopass_records`` / ``get_twopass_record_detail`` in history_chat.py).
 
 Reuses ``results_store._get_conn`` / ``_get_db_path`` so WAL, row_factory and
-the DB path (``~/.capitalradar/logs/results.db``) stay consistent with the rest
+the DB path (``~/.quantconclave/logs/results.db``) stay consistent with the rest
 of the dashboard (same pattern as web/watchlist_store.py).
 """
 

@@ -5,8 +5,8 @@ import unittest
 
 import pytest
 
-import capitalradar.default_config as default_config
-from capitalradar.dataflows.config import get_config, set_config
+import quantconclave.default_config as default_config
+from quantconclave.dataflows.config import get_config, set_config
 
 
 @pytest.mark.unit

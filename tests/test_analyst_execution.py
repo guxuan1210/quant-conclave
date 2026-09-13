@@ -1,6 +1,6 @@
 import unittest
 
-from capitalradar.graph.analyst_execution import (
+from quantconclave.graph.analyst_execution import (
     AnalystWallTimeTracker,
     build_analyst_execution_plan,
     get_initial_analyst_node,

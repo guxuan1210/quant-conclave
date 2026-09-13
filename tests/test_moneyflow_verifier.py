@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from capitalradar.sector_scan.moneyflow_verifier import (
+from quantconclave.sector_scan.moneyflow_verifier import (
     _parse_moneyflow_csv,
     _render_verify_moneyflow,
     verify_moneyflow,
@@ -57,8 +57,8 @@ def _monkeypatch_vendors(monkeypatch, akshare_out=None, tushare_out=None, ths_ou
     tushare_out — tushare moneyflow, the EastMoney fallback primary.
     ths_out     — tushare moneyflow_dc, the 同花顺 verifier.
     """
-    import capitalradar.dataflows.akshare_data as aks
-    import capitalradar.dataflows.tushare_data as ts
+    import quantconclave.dataflows.akshare_data as aks
+    import quantconclave.dataflows.tushare_data as ts
 
     def _stub(out):
         if callable(out):
@@ -212,8 +212,8 @@ def test_tiny_window_skipped_not_judged(monkeypatch):
 
 def test_custom_flow_rows_used_as_primary(monkeypatch):
     # flow_rows provided → no vendor fetch for the primary; 同花顺 is the verifier.
-    import capitalradar.dataflows.akshare_data as aks
-    import capitalradar.dataflows.tushare_data as ts
+    import quantconclave.dataflows.akshare_data as aks
+    import quantconclave.dataflows.tushare_data as ts
     called = {"akshare": False, "tushare": False}
     monkeypatch.setattr(aks, "get_money_flow_akshare",
                         lambda ticker=None, start_date=None, end_date=None: (

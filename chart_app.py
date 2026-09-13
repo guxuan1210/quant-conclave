@@ -1,6 +1,6 @@
 """Standalone K-line chart server — port comes from the runtime manifest.
 
-OHLCV fetching is delegated to ``capitalradar.dataflows.ohlcv.fetch_ohlcv``,
+OHLCV fetching is delegated to ``quantconclave.dataflows.ohlcv.fetch_ohlcv``,
 which is network-aware: A-shares use the tushare vendor chain first (reliable
 on this deployment), non-A-shares use yfinance first, and weekly/monthly bars
 are resampled from daily data when yfinance has no native bars.
@@ -16,7 +16,7 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="CapitalRadar Chart")
+app = FastAPI(title="QuantConclave Chart")
 _web_dir = Path(__file__).parent / "web"
 app.mount("/static", StaticFiles(directory=str(_web_dir / "static")), name="static")
 
@@ -50,7 +50,7 @@ def search_stocks(q: str = Query(min_length=1)):
         pass
     # Fallback: A-share fuzzy search via tushare stock_basic
     try:
-        from capitalradar.dataflows.tushare_data import _get_pro
+        from quantconclave.dataflows.tushare_data import _get_pro
         pro = _get_pro()
         df = pro.stock_basic(exchange="", list_status="L",
                              fields="ts_code,name,industry,market")
@@ -78,7 +78,7 @@ def _get_history(ticker: str, period: str = "1mo", interval: str = "1d") -> pd.D
     """Fetch OHLCV via the shared network-aware helper (A-shares: tushare chain
     first; non-A-shares: yfinance first; weekly/monthly resampled as fallback)."""
     _load_env()
-    from capitalradar.dataflows.ohlcv import fetch_ohlcv
+    from quantconclave.dataflows.ohlcv import fetch_ohlcv
     df = fetch_ohlcv(ticker, period=period, interval=interval)
     return df if df is not None else pd.DataFrame()
 
@@ -87,7 +87,7 @@ def _fetch_intraday_candle(ticker: str) -> dict | None:
     """Fetch today's intraday 5-min bars from Tencent and build a synthetic daily candle."""
     import requests, datetime
     try:
-        from capitalradar.dataflows.tencent_realtime import _normalize_symbol
+        from quantconclave.dataflows.tencent_realtime import _normalize_symbol
         norm = _normalize_symbol(ticker)
         resp = requests.get(f"https://ifzq.gtimg.cn/appstock/app/kline/mkline?param={norm},m5,,80", timeout=8)
         data = resp.json()
@@ -190,5 +190,5 @@ def _indicators(data):
 
 
 if __name__ == "__main__":
-    from capitalradar.runtime_manifest import HOST, chart_port
+    from quantconclave.runtime_manifest import HOST, chart_port
     uvicorn.run(app, host=HOST, port=chart_port())

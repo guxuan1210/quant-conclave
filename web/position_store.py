@@ -56,7 +56,7 @@ def init_position_store(config: dict) -> None:
 def _fetch_price(code: str) -> float:
     """Fetch real-time price from Tencent. Returns 0 on failure."""
     try:
-        from capitalradar.dataflows.tencent_realtime import _normalize_symbol
+        from quantconclave.dataflows.tencent_realtime import _normalize_symbol
         import requests
         norm = _normalize_symbol(code)
         resp = requests.get(f"http://qt.gtimg.cn/q={norm}", timeout=5)

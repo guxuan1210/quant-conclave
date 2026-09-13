@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from capitalradar.agents.utils import quant_tools as qt
+from quantconclave.agents.utils import quant_tools as qt
 
 
 @pytest.fixture()
@@ -69,7 +69,7 @@ def test_cci_numerical_correctness(patched_fetch):
 
 
 def test_quant_indicators_importable():
-    from capitalradar.quant import indicators, utils
+    from quantconclave.quant import indicators, utils
     assert hasattr(indicators, "cci")
     assert hasattr(indicators, "trend_score")
     assert hasattr(indicators, "rsrs")

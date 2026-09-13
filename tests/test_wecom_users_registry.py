@@ -9,7 +9,7 @@ learned-but-unregistered userids (never persisted), and the ~60s write throttle
 so chat traffic can't rewrite the JSON per message.
 
 Each test swaps results_dir to a fresh tmp dir so no test ever touches the real
-~/.capitalradar/logs registry, and stubs ``web.wecom_bot._BOT`` with a fake that
+~/.quantconclave/logs registry, and stubs ``web.wecom_bot._BOT`` with a fake that
 exposes only ``registered_users()`` / ``_targets`` (what the bridge reads).
 """
 

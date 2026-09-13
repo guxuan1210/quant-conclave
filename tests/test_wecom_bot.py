@@ -326,7 +326,7 @@ def test_integration_subscribe_learn_send_persist(tmp_path, monkeypatch):
             time.sleep(0.05)
         assert bot._targets.get("single") == "zhangsan"
 
-        res = wb.push_markdown("你好，CapitalRadar")
+        res = wb.push_markdown("你好，QuantConclave")
         assert res.get("ok") is True, res
 
         subs = [f for f in received if f.get("cmd") == "aibot_subscribe"]
@@ -339,7 +339,7 @@ def test_integration_subscribe_learn_send_persist(tmp_path, monkeypatch):
         assert body["chatid"] == "zhangsan"
         assert body["chat_type"] == 1
         assert body["msgtype"] == "markdown"
-        assert body["markdown"]["content"] == "你好，CapitalRadar"
+        assert body["markdown"]["content"] == "你好，QuantConclave"
 
         # the learned target survives a process restart (persisted to disk)
         path = os.path.join(tmp_path, "wecom_bot_targets.json")

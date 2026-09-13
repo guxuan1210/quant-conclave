@@ -9,7 +9,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from capitalradar.dataflows.config import get_config
+from quantconclave.dataflows.config import get_config
 from web.ai_pick_agent import build_aipick_tools
 
 
@@ -59,27 +59,27 @@ def _ok_metrics(code: str = "000001.SZ") -> dict:
 def _apply_screening_mocks(monkeypatch):
     """Shared mocks for the candidate-pool path (run_smart_screening)."""
     monkeypatch.setattr(
-        "capitalradar.sector_scan.rotation.get_rrg_data",
+        "quantconclave.sector_scan.rotation.get_rrg_data",
         lambda *a, **k: {"industries": [{"name": "半导体", "quadrant": "leading"}]},
     )
     monkeypatch.setattr(
-        "capitalradar.sector_scan.smart_scanner.get_industry_stocks",
+        "quantconclave.sector_scan.smart_scanner.get_industry_stocks",
         lambda name: [{"ts_code": "000001.SZ", "symbol": "000001", "name": "平安银行"}],
     )
     monkeypatch.setattr(
-        "capitalradar.sector_scan.smart_scanner.get_daily_basic_batch",
+        "quantconclave.sector_scan.smart_scanner.get_daily_basic_batch",
         lambda codes: {"000001.SZ": {"close": 9.5, "total_mv": 200000, "pe": 12.0, "pb": 1.2}},
     )
     monkeypatch.setattr(
-        "capitalradar.sector_scan.smart_money_score.compute_smart_money_score",
+        "quantconclave.sector_scan.smart_money_score.compute_smart_money_score",
         lambda code, cfg: (75.0, {}),
     )
     monkeypatch.setattr(
-        "capitalradar.sector_scan.reversal_metrics.fetch_reversal_metrics",
+        "quantconclave.sector_scan.reversal_metrics.fetch_reversal_metrics",
         lambda code, date, config=None: _ok_metrics(code),
     )
     monkeypatch.setattr(
-        "capitalradar.sector_scan.pick_tracker.record_pick",
+        "quantconclave.sector_scan.pick_tracker.record_pick",
         lambda *a, **k: None,
     )
 
@@ -168,11 +168,11 @@ def test_get_hot_reversal_picks_uses_180d_bottom_and_excludes_young(monkeypatch)
     # Override the ok-for-all reversal mock AFTER building (build applies the
     # default mocks) with the scenario mock: 1 young stock + 1 already-rallied.
     monkeypatch.setattr(
-        "capitalradar.sector_scan.reversal_metrics.fetch_reversal_metrics", _rev_for_hot
+        "quantconclave.sector_scan.reversal_metrics.fetch_reversal_metrics", _rev_for_hot
     )
     monkeypatch.setattr("tushare.pro_api", lambda token: _FakePro())
-    monkeypatch.setattr("capitalradar.prediction.feature_engine.FeatureEngine", _FakeFE)
-    monkeypatch.setattr("capitalradar.prediction.direction_predictor.DirectionPredictor", _FakeDP)
+    monkeypatch.setattr("quantconclave.prediction.feature_engine.FeatureEngine", _FakeFE)
+    monkeypatch.setattr("quantconclave.prediction.direction_predictor.DirectionPredictor", _FakeDP)
 
     result = _tool_map(tools)["get_hot_reversal_picks"].invoke({"top_n": 5})
 

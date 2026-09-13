@@ -1,13 +1,13 @@
 """Domain catalog consistency tests.
 
-The catalog (capitalradar/catalog.py) is the single source of truth for the
+The catalog (quantconclave/catalog.py) is the single source of truth for the
 role -> node/label/report-key mapping. These tests pin the canonical values and
 assert that the graph, CLI, and web modules derive from it instead of drifting.
 """
 
 from __future__ import annotations
 
-import capitalradar.catalog as catalog
+import quantconclave.catalog as catalog
 
 
 def test_roles_and_order_are_consistent():
@@ -36,7 +36,7 @@ def test_report_keys_are_consistent():
 
 
 def test_graph_node_specs_derive_from_catalog():
-    from capitalradar.graph.analyst_execution import ANALYST_NODE_SPECS
+    from quantconclave.graph.analyst_execution import ANALYST_NODE_SPECS
     assert set(ANALYST_NODE_SPECS.keys()) == set(catalog.ANALYST_ROLES.keys())
     for key, spec in ANALYST_NODE_SPECS.items():
         role = catalog.ANALYST_ROLES[key]
@@ -47,7 +47,7 @@ def test_graph_node_specs_derive_from_catalog():
 
 
 def test_parallel_runner_report_keys_derive_from_catalog():
-    from capitalradar.graph.parallel_analyst_runner import ANALYST_REPORT_KEYS
+    from quantconclave.graph.parallel_analyst_runner import ANALYST_REPORT_KEYS
     expected = {
         k: r.report_key for k, r in catalog.ANALYST_ROLES.items() if k != "capital_flow"
     }
@@ -62,12 +62,12 @@ def test_cli_mappings_derive_from_catalog():
 
 
 def test_adjudicator_report_fields_derive_from_catalog():
-    from capitalradar.graph.adjudicator import REPORT_FIELDS
+    from quantconclave.graph.adjudicator import REPORT_FIELDS
     assert REPORT_FIELDS == [r.report_key for r in catalog.ordered_roles()]
 
 
 def test_propagation_initial_state_has_all_report_keys():
-    from capitalradar.graph.propagation import Propagator
+    from quantconclave.graph.propagation import Propagator
     state = Propagator().create_initial_state("000001", "2026-09-13")
     for role in catalog.ANALYST_ROLES.values():
         assert state[role.report_key] == ""

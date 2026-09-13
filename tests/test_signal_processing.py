@@ -2,7 +2,7 @@
 
 The Portfolio Manager produces a typed PortfolioDecision via structured
 output and renders it to markdown that always contains a ``**Rating**: X``
-header.  The deterministic heuristic in ``capitalradar.agents.utils.rating``
+header.  The deterministic heuristic in ``quantconclave.agents.utils.rating``
 is therefore sufficient to extract the rating downstream — no second LLM
 call is needed — and SignalProcessor is now a thin adapter that delegates
 to it.
@@ -10,8 +10,8 @@ to it.
 
 import pytest
 
-from capitalradar.agents.utils.rating import RATINGS_5_TIER, parse_rating
-from capitalradar.graph.signal_processing import SignalProcessor
+from quantconclave.agents.utils.rating import RATINGS_5_TIER, parse_rating
+from quantconclave.graph.signal_processing import SignalProcessor
 
 
 # ---------------------------------------------------------------------------

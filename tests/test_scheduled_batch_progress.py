@@ -112,17 +112,17 @@ def test_execute_deep_branch_starts_progress(monkeypatch):
     """The deep branch publishes phase='deep' BEFORE constructing the graph.
 
     We let the real dispatch run up to its ``run_progress.start`` line, then
-    block CapitalRadarGraph construction so the test needs no LLM/network. The
+    block QuantConclaveGraph construction so the test needs no LLM/network. The
     finally still clears the marker afterwards.
     """
     from web import scheduler as sched_mod
-    import capitalradar.graph.trading_graph as tg
+    import quantconclave.graph.trading_graph as tg
 
     class BlockGraph:
         def __init__(self, **kwargs):
             raise RuntimeError("graph construction blocked")
 
-    monkeypatch.setattr(tg, "CapitalRadarGraph", BlockGraph)
+    monkeypatch.setattr(tg, "QuantConclaveGraph", BlockGraph)
     with pytest.raises(RuntimeError):
         sched_mod._execute_scheduled_analysis_dispatch({
             "job_id": "deep-run", "task_type": "deep",
@@ -143,8 +143,8 @@ def test_execute_deep_branch_records_run_log(config, monkeypatch):
     store (dispatch imports DEFAULT_CONFIG at call time, so we patch it to the
     temp config) with a self-contained summary the report can rebuild from.
     """
-    import capitalradar.default_config as dc
-    import capitalradar.graph.trading_graph as tg
+    import quantconclave.default_config as dc
+    import quantconclave.graph.trading_graph as tg
     from web import scheduler as sched_mod
     from web.scheduler import get_scheduler_runs, init_scheduler_run_store
 
@@ -167,9 +167,9 @@ def test_execute_deep_branch_records_run_log(config, monkeypatch):
     cfg = dict(dc.DEFAULT_CONFIG)
     cfg["results_dir"] = config["results_dir"]
     monkeypatch.setattr(dc, "DEFAULT_CONFIG", cfg)             # temp store
-    monkeypatch.setattr(tg, "CapitalRadarGraph", FakeGraph)
+    monkeypatch.setattr(tg, "QuantConclaveGraph", FakeGraph)
     monkeypatch.setattr("web.results_store.save_result", fake_save_result)
-    monkeypatch.setattr("capitalradar.agents.utils.rating.parse_rating",
+    monkeypatch.setattr("quantconclave.agents.utils.rating.parse_rating",
                         lambda _s: "buy")
     monkeypatch.setattr("web.ticker_utils.resolve_company_name",
                         lambda t: (t, "招商银行"))

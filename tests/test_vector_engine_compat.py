@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from capitalradar.backtest.engine import run_backtest
-from capitalradar.backtest.report import compute_performance, render_equity_chart_data
+from quantconclave.backtest.engine import run_backtest
+from quantconclave.backtest.report import compute_performance, render_equity_chart_data
 
 # Legacy engine's expected result dict keys (from the old bt-based engine.py)
 LEGACY_RESULTS_KEYS = {

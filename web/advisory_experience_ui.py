@@ -2,14 +2,14 @@
 """FastAPI router for advisory experience management."""
 from fastapi import APIRouter, HTTPException, Body
 from pydantic import BaseModel
-from capitalradar.advisory.experience_store import (
+from quantconclave.advisory.experience_store import (
     list_experiences, approve_experience, archive_experience,
     reactivate_experience, update_experience, get_active_experiences,
     get_injection_log, create_experience,
 )
-from capitalradar.advisory.extraction import extract_patterns_from_log
+from quantconclave.advisory.extraction import extract_patterns_from_log
 
-from capitalradar.agents.utils.memory import CapitalRadarMemoryLog
+from quantconclave.agents.utils.memory import QuantConclaveMemoryLog
 
 router = APIRouter(prefix="/api/advisory", tags=["advisory"])
 
@@ -64,9 +64,9 @@ def api_update_experience(eid: int, body: ExperienceUpdate):
 @router.post("/experiences/extract")
 def api_extract(config: dict | None = Body(default=None)):
     if config is None:
-        from capitalradar.default_config import DEFAULT_CONFIG
+        from quantconclave.default_config import DEFAULT_CONFIG
         config = DEFAULT_CONFIG
-    memory_log = CapitalRadarMemoryLog(config)
+    memory_log = QuantConclaveMemoryLog(config)
     proposals = extract_patterns_from_log(memory_log)
     created = []
     for p in proposals:

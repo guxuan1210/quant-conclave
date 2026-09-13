@@ -981,8 +981,8 @@ function addDownloadButton(reportMd) {
   if (!reportMd) return;
   var ticker = selectedTicker ? selectedTicker.symbol : "report";
   var date = dateInput ? dateInput.value.trim() : "";
-  var filenameMd = "CapitalRadar_" + ticker + "_" + date + ".md";
-  var filenameDocx = "CapitalRadar_" + ticker + "_" + date + ".docx";
+  var filenameMd = "QuantConclave_" + ticker + "_" + date + ".md";
+  var filenameDocx = "QuantConclave_" + ticker + "_" + date + ".docx";
   var blob = new Blob([reportMd], { type: "text/markdown;charset=utf-8" });
   downloadBlobUrl = URL.createObjectURL(blob);
   
@@ -8531,7 +8531,7 @@ function escHtml(str) {
 
 
 // ============================================================================
-// CapitalRadar Advisor Tab - Thread-based chat with expanded right panel
+// QuantConclave Advisor Tab - Thread-based chat with expanded right panel
 // ============================================================================
 
 var advisoryThreadId = null;
@@ -9427,7 +9427,7 @@ function selectAdvisoryThread(threadId) {
   var thread = advisoryThreads.find(function(t) { return t.thread_id === threadId; });
   var titleEl = document.getElementById("adv-expanded-title");
   var subEl = document.getElementById("adv-expanded-subtitle");
-  if (titleEl) titleEl.textContent = thread ? (thread.title || "Conversation") : "CapitalRadar Advisor";
+  if (titleEl) titleEl.textContent = thread ? (thread.title || "Conversation") : "QuantConclave Advisor";
   if (subEl) subEl.textContent = thread ? t("chat.messagesCount", {n: thread.message_count || 0}) : "";
   
   // Load messages from API
@@ -9493,7 +9493,7 @@ function deleteAdvisoryThread(threadId) {
         var msgs = document.getElementById("advisory-expanded-messages");
         if (msgs) msgs.innerHTML = '<div class="chat-msg system">' + t("chat.welcomeAdvisor") + '</div>';
         var titleEl = document.getElementById("adv-expanded-title");
-        if (titleEl) titleEl.textContent = "CapitalRadar Advisor";
+        if (titleEl) titleEl.textContent = "QuantConclave Advisor";
         var subEl = document.getElementById("adv-expanded-subtitle");
         if (subEl) subEl.textContent = t("chat.newConversation");
       }
@@ -9543,7 +9543,7 @@ function newAdvisoryThread() {
   if (msgs) msgs.innerHTML = '<div class="chat-msg system">New conversation started. Ask me anything about stocks.</div>';
   
   var titleEl = document.getElementById("adv-expanded-title");
-  if (titleEl) titleEl.textContent = "CapitalRadar Advisor";
+  if (titleEl) titleEl.textContent = "QuantConclave Advisor";
   var subEl = document.getElementById("adv-expanded-subtitle");
   if (subEl) subEl.textContent = "New conversation";
   

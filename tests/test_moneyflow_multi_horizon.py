@@ -138,7 +138,7 @@ def _mh_cache_rows():
 def _patch_watchlist_network(monkeypatch):
     """Shared stubs for the two watchlist_stock_detail tests: realtime quote,
     moneyflow cache, tushare circ_mv (via _get_pro) and margin network."""
-    from capitalradar.dataflows import eastmoney_sector as es
+    from quantconclave.dataflows import eastmoney_sector as es
     from web import moneyflow_cache as mfc
     monkeypatch.setattr(requests, "get", lambda *a, **k: _FakeResp())
     monkeypatch.setattr(mfc, "fetch_or_cache_moneyflow", lambda *a, **k: _flow_csv())
@@ -154,7 +154,7 @@ def _no_margin(*a, **k):
 # ── aggregate_moneyflow_wan ──────────────────────────────────────────────
 
 def test_aggregate_constant_61_days():
-    from capitalradar.dataflows.eastmoney_sector import aggregate_moneyflow_wan
+    from quantconclave.dataflows.eastmoney_sector import aggregate_moneyflow_wan
     rows = [_const_row(f"202609{61 - i:02d}") for i in range(61)]
     agg = aggregate_moneyflow_wan(rows)
     assert agg["1"] == {"main": 2000.0, "elg": 1000.0, "lg": 1000.0,
@@ -173,7 +173,7 @@ def test_aggregate_constant_61_days():
 
 def test_aggregate_sorts_newest_first():
     """Input order must not matter — the newest trade_date wins the '1' window."""
-    from capitalradar.dataflows.eastmoney_sector import aggregate_moneyflow_wan
+    from quantconclave.dataflows.eastmoney_sector import aggregate_moneyflow_wan
     a = _const_row("20260801", buy_elg=1000.0, buy_lg=0.0)   # 主力 +1000 (elg)
     b = dict(_const_row("20260802", buy_elg=0.0, buy_lg=0.0),
              sell_elg_amount=2000.0)                          # 主力 -2000
@@ -191,7 +191,7 @@ def test_aggregate_sorts_newest_first():
 
 def test_aggregate_partial_window_reports_actual_days():
     """Fewer than 60 rows → '60' aggregates what exists and says so (days=N)."""
-    from capitalradar.dataflows.eastmoney_sector import aggregate_moneyflow_wan
+    from quantconclave.dataflows.eastmoney_sector import aggregate_moneyflow_wan
     rows = [_const_row(f"202608{n:02d}") for n in range(1, 11)]  # 10 rows, ASC
     agg = aggregate_moneyflow_wan(rows)
     assert agg["60"]["days"] == 10
@@ -206,7 +206,7 @@ def test_get_stock_moneyflow_no_nameerror_and_net_60d(monkeypatch):
     """The old code raised NameError (total_vol undefined) whenever data existed,
     so every caller silently degraded. Now it returns a full dict including
     net_60d and multi_horizon even when called with days=5."""
-    from capitalradar.dataflows import eastmoney_sector as es
+    from quantconclave.dataflows import eastmoney_sector as es
     monkeypatch.setattr(es, "_get_pro", lambda: _FakePro(_mf_df(65)))
     mf = es.get_stock_moneyflow("000001.SZ", days=5)
     assert mf["net_1d"] == 3000.0
@@ -221,7 +221,7 @@ def test_get_stock_moneyflow_no_nameerror_and_net_60d(monkeypatch):
 
 
 def test_get_stock_moneyflow_empty_still_returns_default(monkeypatch):
-    from capitalradar.dataflows import eastmoney_sector as es
+    from quantconclave.dataflows import eastmoney_sector as es
     import pandas as pd
     monkeypatch.setattr(es, "_get_pro", lambda: _FakePro(pd.DataFrame()))
     assert es.get_stock_moneyflow("000001.SZ", days=5) == {"net_amount": 0.0}
@@ -230,7 +230,7 @@ def test_get_stock_moneyflow_empty_still_returns_default(monkeypatch):
 # ── get_moneyflow_multi_horizon ──────────────────────────────────────────
 
 def test_get_moneyflow_multi_horizon_shape(monkeypatch):
-    from capitalradar.dataflows import eastmoney_sector as es
+    from quantconclave.dataflows import eastmoney_sector as es
     monkeypatch.setattr(es, "_get_pro", lambda: _FakePro(_mf_df(65)))
     agg = es.get_moneyflow_multi_horizon("000001.SZ")
     assert agg["source_rows"] == 65
@@ -244,14 +244,14 @@ def test_get_moneyflow_multi_horizon_shape(monkeypatch):
 
 def test_get_moneyflow_multi_horizon_circ_mv_best_effort(monkeypatch):
     """daily_basic is optional — a pro without it degrades to circ_mv_wan=0."""
-    from capitalradar.dataflows import eastmoney_sector as es
+    from quantconclave.dataflows import eastmoney_sector as es
     monkeypatch.setattr(es, "_get_pro", lambda: _FakePro(_mf_df(65)))
     agg = es.get_moneyflow_multi_horizon("000001.SZ")
     assert agg["circ_mv_wan"] == 0.0
 
 
 def test_get_moneyflow_multi_horizon_empty(monkeypatch):
-    from capitalradar.dataflows import eastmoney_sector as es
+    from quantconclave.dataflows import eastmoney_sector as es
     import pandas as pd
     monkeypatch.setattr(es, "_get_pro", lambda: _FakePro(pd.DataFrame()))
     agg = es.get_moneyflow_multi_horizon("000001.SZ")
@@ -286,7 +286,7 @@ def test_watchlist_detail_prompt_includes_multi_horizon_wan(monkeypatch):
     (占成交额%, 流通市值, ⚠️ scale caveat) — the model cites verbatim and must
     NOT treat a bare 万元 net as a strength verdict."""
     from web.app import watchlist_stock_detail
-    from capitalradar.dataflows import interface
+    from quantconclave.dataflows import interface
     _patch_watchlist_network(monkeypatch)
 
     def _no_ohlcv(*a, **k):
@@ -295,7 +295,7 @@ def test_watchlist_detail_prompt_includes_multi_horizon_wan(monkeypatch):
 
     def _no_mx(*a, **k):
         raise RuntimeError("no MX network in tests")
-    monkeypatch.setattr("capitalradar.dataflows.mx_client.query_text", _no_mx)
+    monkeypatch.setattr("quantconclave.dataflows.mx_client.query_text", _no_mx)
 
     class _Structured:
         def invoke(self, prompt):
@@ -318,10 +318,10 @@ def test_watchlist_detail_prompt_includes_multi_horizon_wan(monkeypatch):
 
     llm = _FakeLLM()
     # web.app imports create_llm_client INTO its module namespace (from
-    # capitalradar.llm_clients) — patching web.app.create_llm_client fails with
+    # quantconclave.llm_clients) — patching web.app.create_llm_client fails with
     # AttributeError. Patch the source module the import reads at call time.
     monkeypatch.setattr(
-        "capitalradar.llm_clients.create_llm_client", lambda *a, **k: _Client(llm)
+        "quantconclave.llm_clients.create_llm_client", lambda *a, **k: _Client(llm)
     )
 
     watchlist_stock_detail("000001.SZ")
@@ -359,9 +359,9 @@ def test_watchlist_detail_prompt_includes_multi_horizon_wan(monkeypatch):
 # ── advisor tool returns a compact 万元 summary ───────────────────────────
 
 def test_advisor_get_moneyflow_multi_horizon_tool(monkeypatch):
-    from capitalradar.dataflows.config import get_config
+    from quantconclave.dataflows.config import get_config
     from web.history_chat import build_tool_set
-    from capitalradar.dataflows import eastmoney_sector as es
+    from quantconclave.dataflows import eastmoney_sector as es
 
     def _fake_mh(code):
         rows = [_const_row(f"202609{n:02d}") for n in range(1, 62)]
