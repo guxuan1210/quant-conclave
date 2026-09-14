@@ -479,3 +479,97 @@ def get_industry_board_cons_akshare(
         f"# Total: {len(df_out)} stocks\n\n"
     )
     return header + df_out.to_csv(index=False)
+
+
+# ---------------------------------------------------------------------------
+# Index constituents / trade calendar / index series (evaluation + settlement)
+# ---------------------------------------------------------------------------
+
+def _code6_to_ts_code(code: str) -> str:
+    """Map a 6-digit A-share code to tushare ``ts_code`` form (600118 -> 600118.SH)."""
+    code = str(code).strip().zfill(6)
+    if code.startswith(("6", "9")):
+        return f"{code}.SH"
+    if code.startswith(("0", "3")):
+        return f"{code}.SZ"
+    if code.startswith(("4", "8")):
+        return f"{code}.BJ"
+    return code
+
+
+def _ts_index_to_ak(index_code: str) -> str:
+    """Map a tushare index code to the sina symbol AKShare expects (000300.SH -> sh000300)."""
+    code = str(index_code).strip().upper()
+    if code.endswith(".SH"):
+        return "sh" + code[:-3]
+    if code.endswith(".SZ"):
+        return "sz" + code[:-3]
+    return "sh" + code.replace(".", "")
+
+
+def get_index_constituents_akshare(index_symbol: str) -> list[dict]:
+    """Return index constituents as ``[{code, name, industry, list_date}]`` via AKShare.
+
+    ``index_symbol`` is the 6-digit index code (e.g. "000300", "000905").
+    ``code`` is tushare ``ts_code`` form. ``industry``/``list_date`` are left
+    empty: AKShare's 纳入日期 is the index-entry date, not the IPO date, so it
+    must not feed the min-trading-days filter.
+    """
+    _rate_limit()
+    try:
+        df = ak.index_stock_cons(symbol=str(index_symbol))
+    except Exception as e:
+        return []
+    if df is None or df.empty:
+        return []
+    out = []
+    for _, row in df.iterrows():
+        code = _code6_to_ts_code(str(row.get("品种代码", "")).zfill(6))
+        name = str(row.get("品种名称", "") or "")
+        out.append({"code": code, "name": name, "industry": "", "list_date": ""})
+    return out
+
+
+def get_trade_calendar_akshare() -> set[str]:
+    """Return the set of A-share open days (YYYYMMDD) via AKShare (sina)."""
+    _rate_limit()
+    try:
+        df = ak.tool_trade_date_hist_sina()
+    except Exception:
+        return set()
+    if df is None or df.empty:
+        return set()
+    return {str(d).replace("-", "") for d in df["trade_date"]}
+
+
+def get_stock_name_map_akshare() -> dict[str, str]:
+    """Return ``{ts_code: name}`` for all listed A-shares via AKShare."""
+    _rate_limit()
+    try:
+        df = ak.stock_info_a_code_name()
+    except Exception:
+        return {}
+    if df is None or df.empty:
+        return {}
+    return {_code6_to_ts_code(str(r["code"]).zfill(6)): str(r["name"])
+            for _, r in df.iterrows()}
+
+
+def get_index_daily_akshare(index_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+    """Return an index daily close series (date-indexed, ``close`` col) via AKShare (sina).
+
+    ``index_code`` is tushare form (e.g. "000300.SH"). Returns an empty frame on failure.
+    """
+    _rate_limit()
+    try:
+        df = ak.stock_zh_index_daily(symbol=_ts_index_to_ak(index_code))
+    except Exception:
+        return pd.DataFrame()
+    if df is None or df.empty:
+        return pd.DataFrame()
+    df = df.copy()
+    df["date"] = pd.to_datetime(df["date"])
+    start = pd.to_datetime(start_date)
+    end = pd.to_datetime(end_date)
+    mask = (df["date"] >= start) & (df["date"] <= end)
+    return df.loc[mask, ["date", "close"]].sort_values("date").reset_index(drop=True)

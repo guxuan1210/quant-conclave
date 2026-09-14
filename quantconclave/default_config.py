@@ -276,4 +276,25 @@ DEFAULT_CONFIG = _apply_env_overrides({
         "consensus_reversal": {"enabled": True, "bearish_threshold": 4},
         "conflict_resolution": {"enabled": True, "lookback_days": 7},
     },
+    # Paper-trading investment-effect evaluation (前瞻纸面交易评测).
+    # Weekly fixed-rule sampling → full pipeline rating → settle at the
+    # Nth trading day's adjusted open/close → compare vs 50/50 CSI300/CSI500.
+    "evaluation": {
+        "enabled": True,
+        "weekly_sample_size": 8,
+        "csi300_count": 4,
+        "csi500_count": 4,
+        "dedup_weeks": 8,
+        "seed": 20260913,
+        "friction_bp": 20,              # 20bp round-trip transaction friction
+        "holdings_horizons": [5, 20, 60],
+        "entry_grace_days": 10,          # trading days to retry a missing entry open
+        "max_monthly_cases": 50,
+        "monthly_ablation_count": 6,
+        "min_weeks_for_validity": 26,
+        "coverage_threshold": 0.90,
+        "max_drawdown_delta_pp": 3.0,
+        "benchmark_weights": {"csi300": 0.5, "csi500": 0.5},
+        "benchmark_codes": {"csi300": "000300.SH", "csi500": "000905.SH"},
+    },
 })

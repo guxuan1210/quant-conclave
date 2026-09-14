@@ -375,6 +375,12 @@ def _execute_scheduled_analysis_dispatch(task_data: dict) -> None:
     ``run_batch_task`` itself, deep progress is started here."""
     job_id = task_data.get("job_id", "")
     ttype = task_data.get("task_type", "deep")
+    if ttype in ("evaluation_weekly", "evaluation_settle", "evaluation_monthly"):
+        from web.eval_scheduler import run_evaluation_task
+        from quantconclave.default_config import DEFAULT_CONFIG
+        summary = run_evaluation_task(ttype, DEFAULT_CONFIG)
+        save_scheduler_run(DEFAULT_CONFIG, job_id, task_data.get("name", ""), ttype, summary)
+        return
     if ttype in ("emwl_batch", "idx_batch"):
         from quantconclave.default_config import DEFAULT_CONFIG
         from web.scheduled_batch import run_batch_task
