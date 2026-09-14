@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>评测 Benchmark · QuantConclave</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; font-family: -apple-system, "Segoe UI", "PingFang SC", sans-serif;
+           background: #0a1628; color: #e6edf3; padding: 24px; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .sub { color: #8b98a9; font-size: 13px; margin-bottom: 20px; }
+    .controls { margin-bottom: 16px; display: flex; gap: 8px; }
+    .controls button { background: #1c2b45; color: #e6edf3; border: 1px solid #2c3e5d;
+                       padding: 7px 14px; border-radius: 6px; cursor: pointer; }
+    .controls button.active { background: #2f6fed; border-color: #2f6fed; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .card { background: #101f38; border: 1px solid #1f3050; border-radius: 10px; padding: 14px; }
+    .card .k { color: #8b98a9; font-size: 12px; margin-bottom: 6px; }
+    .card .v { font-size: 20px; font-weight: 600; }
+    .pos { color: #3fb950; } .neg { color: #f85149; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #1f3050; }
+    th { color: #8b98a9; font-weight: 500; }
+    .section { margin-top: 28px; }
+    .section h2 { font-size: 15px; margin: 0 0 8px; }
+    .muted { color: #8b98a9; }
+  </style>
+</head>
+<body>
+  <h1>投资效果评测 · Benchmark</h1>
+  <div class="sub">前瞻纸面交易 · 5/20/60 交易日结算 · 50% 沪深300 + 50% 中证500 基准 · 截至 {{ today }}</div>
+
+  <div class="controls">
+    <button data-period="week" class="active">周 (5日)</button>
+    <button data-period="month">月 (20日)</button>
+    <button data-period="quarter">季 (60日)</button>
+  </div>
+
+  <div class="cards" id="cards"></div>
+
+  <div class="section" id="weekly-section">
+    <h2>周度明细</h2>
+    <table id="weekly-table"></table>
+  </div>
+
+  <div class="section">
+    <h2>评测样本</h2>
+    <table id="cases-table"></table>
+  </div>
+
+<script>
+const fmtPct = (x, d = 2) => x == null ? "—" : (x * 100).toFixed(d) + "%";
+const cls = (x) => x == null ? "" : (x > 0 ? "pos" : (x < 0 ? "neg" : ""));
+
+function renderCards(s) {
+  const validity = (s.validity || {}).status || "—";
+  const items = [
+    ["周期", s.period + " / " + s.horizon + "日"],
+    ["成熟周数", s.mature_weeks ?? "—"],
+    ["覆盖率", fmtPct(s.coverage_pct, 1)],
+    ["累计超额", fmtPct(s.cum_excess_return)],
+    ["年化信息比率", s.annualized_ir == null ? "—" : s.annualized_ir.toFixed(2)],
+    ["回撤差", fmtPct(s.max_drawdown_delta)],
+    ["有效性", validity],
+  ];
+  document.getElementById("cards").innerHTML = items.map(([k, v]) =>
+    `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+}
+
+function renderWeekly(rows) {
+  const el = document.getElementById("weekly-table");
+  if (!rows || !rows.length) { el.innerHTML = "<tr><td class='muted'>暂无成熟周数据</td></tr>"; return; }
+  el.innerHTML = "<tr><th>周</th><th>组合净收益</th><th>基准收益</th><th>超额</th><th>持仓</th></tr>" +
+    rows.map(w => `<tr>
+      <td>${w.week_key}</td>
+      <td class="${cls(w.portfolio_net_return)}">${fmtPct(w.portfolio_net_return)}</td>
+      <td class="${cls(w.benchmark_return)}">${fmtPct(w.benchmark_return)}</td>
+      <td class="${cls(w.excess_return)}">${fmtPct(w.excess_return)}</td>
+      <td>${w.positions}</td></tr>`).join("");
+}
+
+function renderCases(cases) {
+  const el = document.getElementById("cases-table");
+  if (!cases || !cases.length) { el.innerHTML = "<tr><td class='muted'>暂无样本</td></tr>"; return; }
+  el.innerHTML = "<tr><th>周</th><th>标的</th><th>行业</th><th>来源</th><th>状态</th><th>评级</th></tr>" +
+    cases.map(c => `<tr>
+      <td>${c.week_key}</td>
+      <td>${c.company_name || ""} (${c.ticker})</td>
+      <td>${c.industry || ""}</td>
+      <td>${c.index_source || ""}</td>
+      <td>${c.status || ""}</td>
+      <td>${(c.predictions || []).map(p => p.rating || "Hold").join(", ") || "—"}</td></tr>`).join("");
+}
+
+async function loadSummary(period) {
+  const r = await fetch(`/api/evaluation/summary?period=${period}`);
+  const s = await r.json();
+  renderCards(s);
+  renderWeekly(s.weekly || []);
+  document.getElementById("weekly-section").style.display = period === "week" ? "" : "none";
+}
+
+async function loadCases() {
+  const r = await fetch("/api/evaluation/cases");
+  renderCases(await r.json());
+}
+
+document.querySelectorAll(".controls button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".controls button").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    loadSummary(btn.dataset.period);
+  });
+});
+
+loadSummary("week");
+loadCases();
+</script>
+</body>
+</html>

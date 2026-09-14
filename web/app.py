@@ -34,6 +34,7 @@ from web.calibration_ui import router as calibration_router
 from web.history_agent import router as history_agent_router
 from web.skill_ui import router as skill_router
 from web.routes.results import router as results_router, CreateThreadBody
+from web.routes.evaluation import router as evaluation_router
 
 logger = logging.getLogger(__name__)
 
@@ -78,10 +79,14 @@ async def lifespan(app_ref: FastAPI):
     init_moneyflow_cache(DEFAULT_CONFIG)
     from web.task_audit import init_task_audit_store
     init_task_audit_store(DEFAULT_CONFIG)
+    from web.eval_store import init_eval_store
+    init_eval_store(DEFAULT_CONFIG)
     from web.scheduler import SchedulerManager, init_scheduler_run_store
     init_scheduler_run_store(DEFAULT_CONFIG)
     _scheduler_manager = SchedulerManager(DEFAULT_CONFIG)
     _scheduler_manager.start()
+    from web.eval_scheduler import register_evaluation_tasks
+    register_evaluation_tasks(_scheduler_manager, DEFAULT_CONFIG)
     # Start the WeCom 智能机器人 long-connection when globally configured — the
     # connection must already be up when a scheduled run finishes, so it can
     # learn the user's chat target and push results. No-op when unconfigured.
@@ -105,6 +110,7 @@ app.include_router(calibration_router)
 app.include_router(history_agent_router)
 app.include_router(skill_router)
 app.include_router(results_router)
+app.include_router(evaluation_router)
 
 from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -165,6 +171,18 @@ def index():
 def favicon():
     """Serve a small favicon to avoid browser 404 noise."""
     return Response(content=_FAVICON_SVG, media_type="image/svg+xml")
+
+
+@app.get("/benchmark")
+def benchmark():
+    """Serve the read-only investment-effect evaluation (Benchmark) page."""
+    template = _jinja_env.get_template("benchmark.html")
+    html = template.render(today=datetime.now().strftime("%Y-%m-%d"))
+    return Response(
+        content=html,
+        media_type="text/html",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+    )
 
 
 @app.get("/api/search")
