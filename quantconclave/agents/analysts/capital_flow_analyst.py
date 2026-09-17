@@ -1,6 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from quantconclave.agents.utils.agent_utils import (
-    build_instrument_context,
+    build_state_instrument_context,
     get_analyst_recommendations,
     get_hsgt_flow,
     get_indicators,
@@ -26,6 +26,37 @@ from quantconclave.agents.utils.eastmoney_tools import (
 )
 from quantconclave.dataflows.config import get_config
 from quantconclave.agents.utils.web_search_tool import web_search
+
+
+def _market_code(state: dict) -> str:
+    return str((state.get("instrument_profile") or {}).get("market", "UNKNOWN")).upper()
+
+
+def _tools_for_market(market: str) -> list:
+    if market == "CN":
+        return [get_money_flow, get_hsgt_flow, get_market_flow, get_margin_trading,
+                get_dragon_tiger_list, get_share_pledge, get_share_unlock,
+                get_stock_buyback, get_holder_changes, get_realtime_quote,
+                get_intraday_data, get_indicators, get_eastmoney_money_flow,
+                get_eastmoney_quote, get_eastmoney_block_trades, web_search]
+    if market == "US":
+        return [get_institutional_holders, get_major_holders,
+                get_analyst_recommendations, get_insider_transactions,
+                get_realtime_quote, get_intraday_data, get_indicators, web_search]
+    return [get_realtime_quote, get_intraday_data, get_indicators, web_search]
+
+
+def _market_instructions(market: str) -> str:
+    if market == "US":
+        return (
+            "US-market positioning instructions: treat current price/volume and intraday data as positioning evidence; "
+            "treat Form 4 insider filings as event evidence; treat 13F holdings as delayed quarterly evidence only. "
+            "Never equate daily short-sale volume with short interest, and never claim real-time institutional buying "
+            "from holder snapshots. Use NO_DATA to mean unavailable/insufficient evidence, not neutral."
+        )
+    if market == "CN":
+        return ""
+    return "Use only available market-neutral evidence. Use NO_DATA to mean unavailable, not neutral."
 
 
 def _fetch_market_context() -> str:
@@ -87,30 +118,15 @@ def create_capital_flow_analyst(llm):
     def capital_flow_analyst_node(state):
         current_date = state["trade_date"]
         ticker = state.get("company_of_interest", "")
-        instrument_context = build_instrument_context(ticker)
+        instrument_context = build_state_instrument_context(state)
 
-        # Detect ticker type: CN A-share vs global/US
-        t = ticker.strip().upper()
-        is_cn = any(t.endswith(s) for s in (".SH", ".SZ", ".SS", ".BJ")) or (t.isdigit() and len(t) == 6)
+        market = _market_code(state)
+        if market == "UNKNOWN":
+            t = ticker.strip().upper()
+            market = "CN" if any(t.endswith(s) for s in (".SH", ".SZ", ".SS", ".BJ")) or (t.isdigit() and len(t) == 6) else "US"
+        is_cn = market == "CN"
 
-        if is_cn:
-            tools = [
-                get_money_flow, get_hsgt_flow, get_market_flow,
-                get_margin_trading, get_dragon_tiger_list,
-                get_share_pledge, get_share_unlock, get_stock_buyback, get_holder_changes,
-                get_realtime_quote, get_intraday_data, get_indicators,
-                # 妙想(MX) real-time 主力资金 + 行情 + 暗盘/大宗 (CN only)
-                get_eastmoney_money_flow,
-                get_eastmoney_quote,
-                get_eastmoney_block_trades,
-                web_search,
-            ]
-        else:
-            tools = [
-                get_institutional_holders, get_major_holders,
-                get_analyst_recommendations, get_insider_transactions,
-                get_realtime_quote, get_intraday_data, get_indicators,
-            ]
+        tools = _tools_for_market(market)
 
         ticker_type_hint = (
             "This is a Chinese A-share stock. Use domestic tools (money flow, HSGT, margin, dragon-tiger list)"
@@ -122,7 +138,7 @@ def create_capital_flow_analyst(llm):
             " CN-specific tools (money flow, HSGT, margin trading) are NOT available for this ticker."
         )
 
-        market_ctx = _fetch_market_context()
+        market_ctx = _fetch_market_context() if is_cn else ""
         market_line = f"**今日市场背景**: {market_ctx}\n\n" if market_ctx else ""
 
         system_message = (
@@ -320,6 +336,12 @@ Begin directly with the section headings (## 主力资金动向 etc.).
 The report text MUST start with your analysis content, NOT with a sentence about writing a report.
 """
         )
+        if market != "CN":
+            system_message = _market_instructions(market) + "\n\n" + (
+                "Produce a complete capital-positioning report using only the supplied tools and shared evidence. "
+                "Clearly distinguish current price/volume evidence, insider events, delayed institutional filings, "
+                "and unavailable data. Do not infer neutral sentiment from missing evidence."
+            )
 
         # Prepend ticker+warning to instrument_context so the model sees it FIRST
         instr_with_ticker = (

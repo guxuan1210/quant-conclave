@@ -98,6 +98,26 @@ def build_instrument_context(ticker: str, asset_type: str = "stock") -> str:
         + skill_section
     )
 
+
+def build_state_instrument_context(state: dict) -> str:
+    """Build legacy instrument context plus resolved market profile/evidence."""
+    from quantconclave.evidence import EvidencePack
+
+    base = build_instrument_context(
+        state["company_of_interest"], state.get("asset_type", "stock")
+    )
+    profile = state.get("instrument_profile") or {}
+    pack_data = state.get("evidence_pack") or {}
+    profile_line = (
+        f"Market profile: market={profile.get('market', 'UNKNOWN')}, "
+        f"exchange={profile.get('exchange', 'unknown')}, "
+        f"currency={profile.get('currency', 'unknown')}, "
+        f"timezone={profile.get('timezone', 'unknown')}, "
+        f"benchmark={profile.get('benchmark', 'unknown')}."
+    )
+    evidence = EvidencePack.from_dict(pack_data).to_prompt_summary() if pack_data else "No shared evidence snapshot."
+    return f"{base}\n{profile_line}\n{evidence}"
+
 def create_msg_delete():
     def delete_messages(state):
         """Clear messages and add placeholder for Anthropic compatibility"""

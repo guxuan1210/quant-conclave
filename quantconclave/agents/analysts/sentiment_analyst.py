@@ -24,7 +24,7 @@ import concurrent.futures
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from quantconclave.agents.utils.agent_utils import (
-    build_instrument_context,
+    build_state_instrument_context,
     get_language_instruction,
     get_news,
     get_realtime_quote,
@@ -52,7 +52,8 @@ def create_sentiment_analyst(llm):
         ticker = state["company_of_interest"]
         end_date = state["trade_date"]
         start_date = _seven_days_back(end_date)
-        instrument_context = build_instrument_context(ticker)
+        instrument_context = build_state_instrument_context(state)
+        market = str((state.get("instrument_profile") or {}).get("market", "UNKNOWN")).upper()
 
         # Pre-fetch all sources IN PARALLEL using a ThreadPoolExecutor.
         # Each fetcher degrades gracefully and returns a string, so the LLM
@@ -65,9 +66,10 @@ def create_sentiment_analyst(llm):
                 _exec.submit(fetch_stocktwits_messages, ticker, 30): 'stocktwits',
                 _exec.submit(fetch_reddit_posts, ticker): 'reddit',
                 _exec.submit(_safe_fetch_realtime, ticker): 'realtime',
-                _exec.submit(_safe_fetch_xueqiu, ticker): 'xueqiu',
-                _exec.submit(_safe_fetch_guba, ticker): 'guba',
             }
+            if market == "CN":
+                _futs[_exec.submit(_safe_fetch_xueqiu, ticker)] = "xueqiu"
+                _futs[_exec.submit(_safe_fetch_guba, ticker)] = "guba"
             _res = {}
             done, not_done = concurrent.futures.wait(
                 _futs, timeout=FETCH_TIMEOUT,
@@ -89,8 +91,8 @@ def create_sentiment_analyst(llm):
         stocktwits_block = _res.get('stocktwits', '<stocktwits unavailable>')
         reddit_block = _res.get('reddit', '<reddit unavailable>')
         realtime_block = _res.get('realtime', '<realtime unavailable>')
-        xueqiu_block = _res.get('xueqiu', '<xueqiu unavailable>')
-        guba_block = _res.get('guba', '<guba unavailable>')
+        xueqiu_block = _res.get('xueqiu', 'NO_DATA')
+        guba_block = _res.get('guba', 'NO_DATA')
 
         capital_flow_report = state.get("capital_flow_report", "")
 
@@ -176,7 +178,9 @@ def _build_system_message(
     capital_flow_report: str = "",
 ) -> str:
     """Assemble the sentiment-analyst system message with structured data blocks."""
-    return f"""You are a financial market sentiment analyst. Your task is to produce a comprehensive sentiment report for {ticker} covering the period from {start_date} to {end_date}, drawing on three complementary data sources that have already been collected for you.
+    return f"""You are a financial market sentiment analyst. Your task is to produce a comprehensive sentiment report for {ticker} covering the period from {start_date} to {end_date}, drawing on complementary data sources that have already been collected for you.
+
+NO_DATA means evidence is unavailable or insufficient. Never convert NO_DATA into neutral sentiment; state the limitation and reduce confidence.
 
 ## YOUR MOST IMPORTANT REFERENCE: CAPITAL FLOW REPORT
 

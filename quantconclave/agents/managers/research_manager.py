@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from quantconclave.agents.schemas import ResearchPlan, render_research_plan
 from quantconclave.agents.utils.agent_utils import (
-    build_instrument_context,
+    build_state_instrument_context,
     get_language_instruction,
 )
 from quantconclave.agents.utils.structured import (
@@ -18,7 +18,7 @@ def create_research_manager(llm):
 
     def research_manager_node(state) -> dict:
         from quantconclave.graph.adjudicator import render_adjudication_notes
-        instrument_context = build_instrument_context(state["company_of_interest"])
+        instrument_context = build_state_instrument_context(state)
         history = state["investment_debate_state"].get("history", "")
 
         investment_debate_state = state["investment_debate_state"]
@@ -97,3 +97,4 @@ If the debate reveals a DIVERGENCE between capital flow data and the prevailing 
         }
 
     return research_manager_node
+

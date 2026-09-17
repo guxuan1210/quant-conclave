@@ -17,7 +17,7 @@ from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 
 from quantconclave.agents.schemas import PortfolioDecision, render_pm_decision
 from quantconclave.agents.utils.agent_utils import (
-    build_instrument_context,
+    build_state_instrument_context,
     get_language_instruction,
 )
 from quantconclave.agents.utils.pm_tools import predict_stock_price
@@ -39,7 +39,7 @@ def create_portfolio_manager(llm):
     """
 
     def portfolio_manager_node(state) -> dict:
-        instrument_context = build_instrument_context(state["company_of_interest"])
+        instrument_context = build_state_instrument_context(state)
         ticker = state["company_of_interest"]
 
         history = state["risk_debate_state"]["history"]
@@ -263,3 +263,4 @@ Be decisive. Ground every conclusion in specific evidence. Remember: your user c
         }
 
     return portfolio_manager_node
+

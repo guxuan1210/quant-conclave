@@ -1,6 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from quantconclave.agents.utils.agent_utils import (
-    build_instrument_context,
+    build_state_instrument_context,
     get_indicators,
     get_intraday_data,
     get_language_instruction,
@@ -21,9 +21,7 @@ def create_market_analyst(llm):
     def market_analyst_node(state):
         current_date = state["trade_date"]
         asset_type = state.get("asset_type", "stock")
-        instrument_context = build_instrument_context(
-            state["company_of_interest"], asset_type
-        )
+        instrument_context = build_state_instrument_context(state)
 
         capital_flow_report = state.get("capital_flow_report", "")
 
@@ -195,3 +193,4 @@ In your report, add a section:
         }
 
     return market_analyst_node
+
