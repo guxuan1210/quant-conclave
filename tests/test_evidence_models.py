@@ -1,4 +1,7 @@
 from quantconclave.evidence import EvidenceItem, EvidencePack, EvidenceStatus
+import json
+from datetime import date, datetime, timezone
+from decimal import Decimal
 
 
 def test_zero_value_is_available_not_no_data():
@@ -40,3 +43,42 @@ def test_summary_calls_missing_data_unavailable_not_neutral():
 def test_pack_round_trip_is_json_safe():
     pack = EvidencePack(symbol="NVDA", analysis_date="2026-09-17", items=())
     assert EvidencePack.from_dict(pack.to_dict()) == pack
+
+
+def test_models_copy_mutable_inputs_and_outputs():
+    payload = {"nested": {"values": [1]}}
+    item = EvidenceItem(
+        kind="facts", source="test", as_of="", fetched_at="",
+        status=EvidenceStatus.AVAILABLE, payload=payload,
+    )
+    payload["nested"]["values"].append(2)
+    assert item.payload == {"nested": {"values": [1]}}
+
+    serialized = item.to_dict()
+    serialized["payload"]["nested"]["values"].append(3)
+    assert item.payload == {"nested": {"values": [1]}}
+
+
+def test_pack_normalizes_items_to_tuple_and_copies_output():
+    item = EvidenceItem("facts", "test", "", "", EvidenceStatus.AVAILABLE, {})
+    pack = EvidencePack("AAPL", "2026-09-17", [item])
+    assert isinstance(pack.items, tuple)
+    output = pack.to_dict()
+    output["items"].clear()
+    assert pack.items == (item,)
+
+
+def test_complex_payload_is_json_safe():
+    numpy = __import__("pytest").importorskip("numpy")
+    payload = {
+        "date": date(2026, 9, 17),
+        "datetime": datetime(2026, 9, 17, 1, 2, 3, tzinfo=timezone.utc),
+        "decimal": Decimal("12.3400"),
+        "set": {"b", "a"},
+        "bytes": b"hello",
+        "numpy_int": numpy.int64(7),
+        "numpy_float": numpy.float64(1.25),
+    }
+    item = EvidenceItem("complex", "test", "", "", EvidenceStatus.AVAILABLE, payload)
+    encoded = json.dumps(item.to_dict())
+    assert encoded
