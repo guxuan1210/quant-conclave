@@ -37,9 +37,12 @@ def resolve_instrument(symbol: str, asset_type: str = "stock") -> InstrumentProf
     if _US.fullmatch(normalized):
         return InstrumentProfile(
             normalized, asset_type, Market.US, "US", "USD",
-            "America/New_York", "XNAS", "SPY", "GICS",
+            "America/New_York", "XNYS", "SPY", "GICS",
             ("sec_filings", "form4", "institutional_holders", "analyst_ratings"),
         )
     raise ValueError(f"Unable to resolve market for ticker '{symbol}'")
+
+
+
 
 

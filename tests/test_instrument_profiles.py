@@ -9,7 +9,7 @@ def test_resolves_plain_us_equity():
     assert profile.market is Market.US
     assert profile.currency == "USD"
     assert profile.timezone == "America/New_York"
-    assert profile.calendar == "XNAS"
+    assert profile.calendar == "XNYS"  # generic US calendar, not an exchange claim
     assert profile.benchmark == "SPY"
     assert profile.exchange == "US"
 
@@ -70,3 +70,4 @@ def test_rejects_unsupported_ticker():
 def test_profile_round_trip_is_json_safe():
     profile = resolve_instrument("NVDA")
     assert type(profile).from_dict(profile.to_dict()) == profile
+
