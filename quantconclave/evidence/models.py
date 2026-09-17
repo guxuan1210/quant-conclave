@@ -5,7 +5,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
 import base64
-import copy
+import math
 from collections.abc import Mapping
 from typing import Any
 
@@ -18,9 +18,48 @@ class EvidenceStatus(str, Enum):
     ERROR = "error"
 
 
+class FrozenDict(dict):
+    """A dict-compatible mapping that rejects every mutation."""
+
+    def _immutable(self, *args: Any, **kwargs: Any) -> None:
+        raise TypeError("evidence payload is immutable")
+
+    __setitem__ = __delitem__ = clear = pop = popitem = setdefault = update = _immutable
+    __ior__ = _immutable
+
+
+class FrozenTuple(tuple):
+    """Tuple-compatible sequence whose list-like mutation calls fail clearly."""
+
+    def _immutable(self, *args: Any, **kwargs: Any) -> None:
+        raise TypeError("evidence payload is immutable")
+
+    append = extend = insert = remove = pop = clear = sort = reverse = _immutable
+
+    def __setitem__(self, key: Any, value: Any) -> None:
+        self._immutable()
+
+    def __delitem__(self, key: Any) -> None:
+        self._immutable()
+
+
+def _freeze(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return FrozenDict({key: _freeze(nested) for key, nested in value.items()})
+    if isinstance(value, (list, tuple)):
+        return FrozenTuple(_freeze(item) for item in value)
+    if isinstance(value, (set, frozenset)):
+        return FrozenTuple(_freeze(item) for item in sorted(value, key=repr))
+    return value
+
+
 def _json_safe(value: Any, *, path: str = "payload") -> Any:
     """Convert common analytical values to JSON-compatible values."""
-    if value is None or isinstance(value, (str, int, float, bool)):
+    if value is None or isinstance(value, (str, int, bool)):
+        return value
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ValueError(f"{path}: float value must be finite")
         return value
     if isinstance(value, Enum):
         return _json_safe(value.value, path=path)
@@ -62,12 +101,12 @@ class EvidenceItem:
     freshness: str = ""
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "payload", copy.deepcopy(self.payload))
+        object.__setattr__(self, "payload", _freeze(self.payload))
 
     def to_dict(self) -> dict[str, Any]:
         result = {**self.__dict__, "status": self.status.value}
         result["payload"] = _json_safe(result["payload"])
-        return copy.deepcopy(result)
+        return result
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "EvidenceItem":
