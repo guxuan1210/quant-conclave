@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta
 from typing import Any
+import math
+import pandas as pd
 
 from .stockstats_utils import yf_retry
 from .y_finance import _yf_ticker
@@ -12,22 +14,36 @@ def _info(symbol):
     return yf_retry(lambda: _yf_ticker(symbol).info) or {}
 
 
-def fetch_price_history(symbol, analysis_date=None, config=None):
-    end = analysis_date or date.today().isoformat()
-    start = (datetime.fromisoformat(end).date() - timedelta(days=380)).isoformat()
+def _safe(value):
+    if isinstance(value, (datetime, date, pd.Timestamp)):
+        return value.isoformat()
+    if hasattr(value, "item"):
+        return _safe(value.item())
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    if isinstance(value, dict): return {str(k): _safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)): return [_safe(v) for v in value]
+    return value
+
+
+def fetch_price_history(symbol, analysis_date, lookback_days=120):
+    cutoff = datetime.fromisoformat(str(analysis_date)).date()
+    start = (cutoff - timedelta(days=int(lookback_days))).isoformat()
+    end = (cutoff + timedelta(days=1)).isoformat()
     frame = yf_retry(lambda: _yf_ticker(symbol).history(start=start, end=end))
     if frame is None or frame.empty:
         return []
     frame = frame.reset_index()
-    return frame.to_dict(orient="records")
+    rows = _safe(frame.reset_index().to_dict(orient="records"))
+    return [row for row in rows if str(row.get("Date", row.get("date", "")))[:10] <= cutoff.isoformat()]
 
 
-def fetch_identity(symbol, **kwargs):
+def fetch_identity(symbol, analysis_date):
     info = _info(symbol)
     return {key: info.get(key) for key in ("symbol", "shortName", "longName", "exchange", "sector", "industry") if info.get(key) is not None}
 
 
-def fetch_quote(symbol, **kwargs):
+def fetch_quote(symbol, analysis_date):
     info = _info(symbol)
     return {key: info.get(key) for key in ("currentPrice", "regularMarketPrice", "previousClose", "bid", "ask", "dayHigh", "dayLow", "volume", "marketState") if info.get(key) is not None}
 
@@ -38,7 +54,7 @@ def _frame_records(frame):
     return frame.reset_index().to_dict(orient="records")
 
 
-def fetch_yfinance_financials(symbol, **kwargs):
+def fetch_yfinance_financials(symbol, analysis_date):
     ticker = _yf_ticker(symbol)
     result = {}
     for name in ("income_stmt", "balance_sheet", "cashflow"):
@@ -46,10 +62,10 @@ def fetch_yfinance_financials(symbol, **kwargs):
             result[name] = _frame_records(yf_retry(lambda n=name: getattr(ticker, n)))
         except Exception:
             result[name] = []
-    return {key: value for key, value in result.items() if value}
+    return _safe({key: value for key, value in result.items() if value})
 
 
-def fetch_holders(symbol, **kwargs):
+def fetch_holders(symbol, analysis_date):
     ticker = _yf_ticker(symbol)
     result = {}
     for name in ("institutional_holders", "major_holders"):
@@ -59,10 +75,10 @@ def fetch_holders(symbol, **kwargs):
                 result[name] = rows
         except Exception:
             pass
-    return result
+    return _safe(result)
 
 
-def fetch_analyst_ratings(symbol, **kwargs):
+def fetch_analyst_ratings(symbol, analysis_date):
     ticker = _yf_ticker(symbol)
     result = {}
     for name in ("recommendations", "upgrades_downgrades"):
@@ -72,8 +88,8 @@ def fetch_analyst_ratings(symbol, **kwargs):
                 result[name] = rows
         except Exception:
             pass
-    return result
+    return _safe(result)
 
 
-def fetch_benchmark_context(symbol, benchmark="SPY", **kwargs):
-    return {"benchmark": benchmark, "price_history": fetch_price_history(benchmark, kwargs.get("analysis_date"), kwargs.get("config"))}
+def fetch_benchmark_context(symbol, benchmark, analysis_date):
+    return {"benchmark": benchmark, "price_history": fetch_price_history(benchmark, analysis_date)}
