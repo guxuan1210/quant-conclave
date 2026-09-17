@@ -605,7 +605,7 @@ class QuantConclaveGraph:
 
     def _log_state(self, trade_date, final_state):
         """Log the final state to a JSON file."""
-        self.log_states_dict[str(trade_date)] = {
+        logged_state = {
             "company_of_interest": final_state["company_of_interest"],
             "trade_date": final_state["trade_date"],
             "market_report": final_state["market_report"],
@@ -638,6 +638,24 @@ class QuantConclaveGraph:
             "final_trade_decision": final_state["final_trade_decision"],
         }
 
+        # Market context is deliberately stored as optional JSON fields.  This
+        # keeps legacy state files valid while making the data snapshot and its
+        # provenance available to history consumers for newer runs.
+        profile = final_state.get("instrument_profile") or {}
+        pack = final_state.get("evidence_pack") or {}
+        items = pack.get("items") or []
+        logged_state.update({
+            "instrument_profile": profile,
+            "evidence_as_of": pack.get("analysis_date", ""),
+            "evidence_quality": pack.get("quality", ""),
+            "evidence_sources": sorted({
+                item.get("source", "") for item in items
+                if isinstance(item, dict) and item.get("source")
+            }),
+            "evidence_pack": pack,
+        })
+        self.log_states_dict[str(trade_date)] = logged_state
+
         # Save to file. Reject ticker values that would escape the
         # results directory when joined as a path component.
         safe_ticker = safe_ticker_component(self.ticker)
@@ -646,7 +664,7 @@ class QuantConclaveGraph:
 
         log_path = directory / f"full_states_log_{trade_date}.json"
         with open(log_path, "w", encoding="utf-8") as f:
-            json.dump(self.log_states_dict[str(trade_date)], f, indent=4)
+            json.dump(logged_state, f, indent=4)
 
     def process_signal(self, full_signal):
         """Process a signal to extract the core decision."""
