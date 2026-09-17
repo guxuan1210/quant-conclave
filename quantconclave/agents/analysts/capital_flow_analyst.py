@@ -322,9 +322,10 @@ The report text MUST start with your analysis content, NOT with a sentence about
         )
 
         # Prepend ticker+warning to instrument_context so the model sees it FIRST
+        call_hint = " Call get_money_flow first." if is_cn else ""
         instr_with_ticker = (
             f"🚨 You are analyzing **{ticker}**. Do NOT hallucinate the company name — "
-            f"use tools to get real data. Call get_money_flow first.\n\n{instrument_context}"
+            f"use tools to get real data.{call_hint}\n\n{instrument_context}"
         )
 
         prompt = ChatPromptTemplate.from_messages(
@@ -350,8 +351,9 @@ The report text MUST start with your analysis content, NOT with a sentence about
         result = chain.invoke(state["messages"])
         tool_calls = getattr(result, "tool_calls", []) or []
 
-        # ── Ollama fallback: if model didn't call tools, pre-fetch data ──
-        if not tool_calls:
+        # ── Ollama fallback: CN models may need an explicit pre-fetch. ──
+        # US evidence must never trigger CN-only data sources.
+        if not tool_calls and is_cn:
             company = state.get("company_of_interest", "")
             if company:
                 pre_data = _prefetch_capital_flow_data(company)
@@ -367,6 +369,15 @@ The report text MUST start with your analysis content, NOT with a sentence about
         report = ""
         if len(tool_calls) == 0:
             report = result.content if hasattr(result, "content") and result.content else ""
+            if not report and not is_cn:
+                from quantconclave.evidence import EvidencePack
+                pack = state.get("evidence_pack") or {}
+                evidence = (EvidencePack.from_dict(pack).to_prompt_summary()
+                            if pack else "No shared evidence snapshot.")
+                report = (
+                    f"Capital Flow evidence is unavailable for {ticker}; no market tools returned data. "
+                    f"This is NO_DATA, not a neutral signal.\n\n{evidence}"
+                )
 
         # Safety net: if tool-call budget is exhausted but the model still
         # wants to call tools, force ONE final call WITHOUT tools to produce
