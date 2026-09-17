@@ -66,6 +66,12 @@ def test_price_required_exact_message():
     with pytest.raises(RuntimeError, match="required price history"):
         build_evidence_pack({"symbol": "AAPL", "market": "US"}, "2026-09-17", {}, sec_client=FakeSec(), market_fetchers=fetchers)
 
+def test_price_fetcher_exception_has_exact_required_error():
+    fetchers = _fetchers()
+    fetchers["price_history"] = lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("provider down"))
+    with pytest.raises(RuntimeError, match="^required price history unavailable for AAPL$"):
+        build_evidence_pack({"symbol": "AAPL", "market": "US"}, "2026-09-17", {}, sec_client=FakeSec(), market_fetchers=fetchers)
+
 
 def test_non_us_pack_is_minimal_identity_and_price():
     pack = build_evidence_pack({"symbol": "0700.HK", "market": "HK"}, "2026-09-17", {}, market_fetchers=_fetchers())

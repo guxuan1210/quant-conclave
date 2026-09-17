@@ -44,7 +44,10 @@ def build_evidence_pack(profile, analysis_date, config, *, sec_client=None, mark
     fetchers = {name: getattr(us_market, name) for name in ("fetch_price_history", "fetch_identity", "fetch_quote", "fetch_yfinance_financials", "fetch_holders", "fetch_analyst_ratings", "fetch_benchmark_context")}
     if market_fetchers:
         fetchers.update(market_fetchers)
-    price = _call(fetchers["price_history"], symbol, analysis_date, config)
+    try:
+        price = _call(fetchers["price_history"], symbol, analysis_date, config)
+    except Exception:
+        raise RuntimeError(f"required price history unavailable for {symbol}")
     if not price:
         raise RuntimeError(f"required price history unavailable for {symbol}")
     items = []
