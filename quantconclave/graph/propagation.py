@@ -24,6 +24,8 @@ class Propagator:
         past_context: str = "",
         checkpoint_1_enabled: bool = False,
         checkpoint_2_enabled: bool = False,
+        instrument_profile: Optional[dict] = None,
+        evidence_pack: Optional[dict] = None,
     ) -> Dict[str, Any]:
         """Create the initial state for the agent graph."""
         return {
@@ -31,6 +33,8 @@ class Propagator:
             "company_of_interest": ticker,
             "asset_type": asset_type,
             "trade_date": str(trade_date),
+            "instrument_profile": dict(instrument_profile or {}),
+            "evidence_pack": dict(evidence_pack or {}),
             "past_context": past_context,
             "human_feedback": "",
             "checkpoint_1_question": "",

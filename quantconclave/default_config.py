@@ -30,6 +30,9 @@ _ENV_OVERRIDES = {
     "QUANTCONCLAVE_SMS_CROSSCHECK_MAX_RATIO": "sms_crosscheck_max_ratio",
     "QUANTCONCLAVE_SMS_MIN_5D_NET_ABS_WAN":   "sms_min_5d_net_abs_wan",
     "QUANTCONCLAVE_SMS_DUAL_SOURCE_GATE":     "sms_dual_source_gate",
+    "QUANTCONCLAVE_SEC_USER_AGENT": "sec_user_agent",
+    "QUANTCONCLAVE_SEC_REQUEST_INTERVAL_SECONDS": "sec_request_interval_seconds",
+    "QUANTCONCLAVE_SEC_TIMEOUT_SECONDS": "sec_timeout_seconds",
 }
 
 
@@ -124,6 +127,11 @@ DEFAULT_CONFIG = _apply_env_overrides({
     "sms_crosscheck_max_ratio": 10.0,
     "sms_min_5d_net_abs_wan": 1000.0,
     "sms_dual_source_gate": True,
+    # SEC EDGAR identification and request pacing. User-Agent should include
+    # an application name and monitored contact email for live access.
+    "sec_user_agent": _getenv("QUANTCONCLAVE_SEC_USER_AGENT", ""),
+    "sec_request_interval_seconds": 0.12,
+    "sec_timeout_seconds": 10.0,
     "memory_log_path": _getenv("QUANTCONCLAVE_MEMORY_LOG_PATH", os.path.join(_QUANTCONCLAVE_HOME, "memory", "trading_memory.md")),
     # HTTP proxy for data sources blocked in certain regions (Reddit, StockTwits, CLS, etc.)
     "proxy": "http://127.0.0.1:7897",
