@@ -323,6 +323,15 @@ class QuantConclaveGraph:
                 return benchmark
         return benchmark_map.get("", "SPY")
 
+    def _prepare_market_context(self, ticker: str, trade_date: str, asset_type: str) -> tuple[dict, dict]:
+        """Resolve an instrument profile and collect one shared evidence snapshot."""
+        from quantconclave.instruments import resolve_instrument
+        from quantconclave.evidence import build_evidence_pack
+
+        profile = resolve_instrument(ticker, asset_type=asset_type)
+        pack = build_evidence_pack(profile, str(trade_date), self.config)
+        return profile.to_dict(), pack.to_dict()
+
     def _fetch_returns(
         self, ticker: str, trade_date: str, holding_days: int = 5,
         benchmark: str = "SPY",
@@ -448,8 +457,10 @@ class QuantConclaveGraph:
         """Execute the graph and write the resulting state to disk and memory log."""
         # Initialize state — inject memory log context for PM.
         past_context = self.memory_log.get_past_context(ticker)
+        instrument_profile, evidence_pack = self._prepare_market_context(ticker, trade_date, asset_type)
         init_agent_state = self.propagator.create_initial_state(
-            ticker, trade_date, asset_type=asset_type, past_context=past_context
+            ticker, trade_date, asset_type=asset_type, past_context=past_context,
+            instrument_profile=instrument_profile, evidence_pack=evidence_pack,
         )
         # Run ML prediction for PM context (fail gracefully)
         try:
@@ -541,8 +552,10 @@ class QuantConclaveGraph:
         self._resolve_pending_entries(ticker)
 
         past_context = self.memory_log.get_past_context(ticker)
+        instrument_profile, evidence_pack = self._prepare_market_context(ticker, trade_date, "stock")
         init_state = self.propagator.create_initial_state(
-            ticker, trade_date, asset_type="stock", past_context=past_context
+            ticker, trade_date, asset_type="stock", past_context=past_context,
+            instrument_profile=instrument_profile, evidence_pack=evidence_pack,
         )
 
         # Inject reused reports from last analysis

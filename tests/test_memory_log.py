@@ -661,6 +661,15 @@ class TestDeferredReflection:
 
 class TestPortfolioManagerInjection:
 
+    def test_initial_state_carries_serialized_profile_and_evidence(self):
+        state = Propagator().create_initial_state(
+            "AAPL", "2026-09-17",
+            instrument_profile={"symbol": "AAPL", "market": "US"},
+            evidence_pack={"symbol": "AAPL", "quality": "complete", "items": []},
+        )
+        assert state["instrument_profile"]["market"] == "US"
+        assert state["evidence_pack"]["quality"] == "complete"
+
     # past_context in initial state
 
     def test_past_context_in_initial_state(self):
@@ -844,6 +853,7 @@ class TestLegacyRemoval:
         mock_graph.log_states_dict = {}
         mock_graph.debug = False
         mock_graph.config = {"results_dir": str(tmp_path)}
+        mock_graph._prepare_market_context.return_value = ({}, {})
         mock_graph.graph.invoke.return_value = fake_state
         mock_graph.propagator.create_initial_state.return_value = fake_state
         mock_graph.propagator.get_graph_args.return_value = {}
