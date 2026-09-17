@@ -1,7 +1,12 @@
 """Immutable, serializable evidence snapshots shared by analysis agents."""
 
 from dataclasses import dataclass
+from datetime import date, datetime
+from decimal import Decimal
 from enum import Enum
+import base64
+import copy
+from collections.abc import Mapping
 from typing import Any
 
 
@@ -11,6 +16,37 @@ class EvidenceStatus(str, Enum):
     DEGRADED = "degraded"
     STALE = "stale"
     ERROR = "error"
+
+
+def _json_safe(value: Any, *, path: str = "payload") -> Any:
+    """Convert common analytical values to JSON-compatible values."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, Enum):
+        return _json_safe(value.value, path=path)
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, bytes):
+        return base64.b64encode(value).decode("ascii")
+    if isinstance(value, Mapping):
+        result = {}
+        for key, nested in value.items():
+            if not isinstance(key, (str, int, float, bool)) and not isinstance(key, Enum):
+                raise TypeError(f"{path}: mapping key {key!r} is not JSON serializable")
+            result[str(key) if not isinstance(key, str) else key] = _json_safe(
+                nested, path=f"{path}[{key!r}]"
+            )
+        return result
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item, path=f"{path}[{index}]") for index, item in enumerate(value)]
+    if isinstance(value, (set, frozenset)):
+        return [_json_safe(item, path=f"{path}[set]") for item in sorted(value, key=repr)]
+    # numpy scalar values expose item() and are converted without making numpy a dependency.
+    if value.__class__.__module__.split(".", 1)[0] == "numpy" and hasattr(value, "item"):
+        return _json_safe(value.item(), path=path)
+    raise TypeError(f"{path}: value of type {type(value).__name__} is not JSON serializable")
 
 
 @dataclass(frozen=True)
@@ -25,8 +61,13 @@ class EvidenceItem:
     filed_at: str = ""
     freshness: str = ""
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "payload", copy.deepcopy(self.payload))
+
     def to_dict(self) -> dict[str, Any]:
-        return {**self.__dict__, "status": self.status.value}
+        result = {**self.__dict__, "status": self.status.value}
+        result["payload"] = _json_safe(result["payload"])
+        return copy.deepcopy(result)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "EvidenceItem":
@@ -40,6 +81,9 @@ class EvidencePack:
     symbol: str
     analysis_date: str
     items: tuple[EvidenceItem, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "items", tuple(self.items))
 
     @property
     def quality(self) -> str:
