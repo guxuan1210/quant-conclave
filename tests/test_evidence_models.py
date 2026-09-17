@@ -1,5 +1,6 @@
 from quantconclave.evidence import EvidenceItem, EvidencePack, EvidenceStatus
 import json
+import math
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
@@ -52,11 +53,11 @@ def test_models_copy_mutable_inputs_and_outputs():
         status=EvidenceStatus.AVAILABLE, payload=payload,
     )
     payload["nested"]["values"].append(2)
-    assert item.payload == {"nested": {"values": [1]}}
+    assert item.payload == {"nested": {"values": (1,)}}
 
     serialized = item.to_dict()
     serialized["payload"]["nested"]["values"].append(3)
-    assert item.payload == {"nested": {"values": [1]}}
+    assert item.payload == {"nested": {"values": (1,)}}
 
 
 def test_pack_normalizes_items_to_tuple_and_copies_output():
@@ -82,3 +83,26 @@ def test_complex_payload_is_json_safe():
     item = EvidenceItem("complex", "test", "", "", EvidenceStatus.AVAILABLE, payload)
     encoded = json.dumps(item.to_dict())
     assert encoded
+
+
+def test_nested_payload_is_immutable_but_serialized_output_is_mutable():
+    item = EvidenceItem("facts", "test", "", "", EvidenceStatus.AVAILABLE, {"nested": {"x": [1]}})
+    with __import__("pytest").raises(TypeError):
+        item.payload["nested"]["x"].append(2)
+    with __import__("pytest").raises(TypeError):
+        item.payload["nested"]["new"] = 3
+
+    output = item.to_dict()
+    assert isinstance(output["payload"], dict)
+    assert isinstance(output["payload"]["nested"]["x"], list)
+    output["payload"]["nested"]["x"].append(2)
+    assert item.payload["nested"]["x"] == (1,)
+
+
+def test_non_finite_floats_are_rejected_for_json_safety():
+    item = EvidenceItem(
+        "facts", "test", "", "", EvidenceStatus.AVAILABLE,
+        {"nan": math.nan, "infinity": math.inf},
+    )
+    with __import__("pytest").raises(ValueError, match="finite"):
+        item.to_dict()
