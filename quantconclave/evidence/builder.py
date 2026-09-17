@@ -40,7 +40,10 @@ def _item(kind, source, as_of, payload, status=None, **kwargs):
 
 def build_evidence_pack(profile, analysis_date, config, *, sec_client=None, market_fetchers=None):
     symbol = str(_value(profile, "symbol", _value(profile, "ticker", ""))).upper()
-    market = str(_value(profile, "market", _value(profile, "market_type", "US"))).upper()
+    market_value = _value(profile, "market", _value(profile, "market_type", "US"))
+    # Instrument profiles use the Market enum; normalize its value rather than
+    # relying on ``str(enum)`` (which yields ``Market.US``).
+    market = str(getattr(market_value, "value", market_value)).upper()
     fetchers = {name: getattr(us_market, name) for name in ("fetch_price_history", "fetch_identity", "fetch_quote", "fetch_yfinance_financials", "fetch_holders", "fetch_analyst_ratings", "fetch_benchmark_context")}
     if market_fetchers:
         fetchers.update(market_fetchers)
