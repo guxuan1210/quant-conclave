@@ -108,6 +108,8 @@ class SecEdgarClient:
         return self._get(COMPANYFACTS_URL.format(cik=self._cik(cik)))
 
     def get_form4_transactions(self, cik: str, as_of: str, limit: int = 20) -> list[dict]:
+        if limit <= 0:
+            return []
         filings = [row for row in self.get_filings(cik, as_of, forms=("4",))]
         result = []
         cik10 = self._cik(cik)
@@ -118,6 +120,8 @@ class SecEdgarClient:
                 continue
             url = ARCHIVE_DOCUMENT_URL.format(cik_int=str(int(cik10)), accession=accession, document=document)
             result.extend(self.parse_form4(self._get(url, is_json=False)))
+            if len(result) >= limit:
+                return result[:limit]
         return result
 
     def parse_form4(self, xml_text: str) -> list[dict]:
