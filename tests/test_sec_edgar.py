@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import pytest
+import requests
 from quantconclave.dataflows.sec_edgar import SecEdgarClient, SecConfigurationError, select_company_facts
 
 FIXTURES = Path(__file__).parent / "fixtures" / "sec"
@@ -15,10 +16,19 @@ class FailingResponse:
     def raise_for_status(self): raise RuntimeError("HTTP 503")
     def json(self): return {}
 
+class StatusResponse:
+    def __init__(self, status_code, payload=None): self.status_code, self._payload = status_code, payload
+    def raise_for_status(self):
+        if self.status_code >= 400: raise requests.HTTPError(f"HTTP {self.status_code}")
+    def json(self): return self._payload
+
 class FakeSession:
     def __init__(self, responses): self.responses, self.calls = list(responses), []
     def get(self, url, headers, timeout):
-        self.calls.append((url, headers, timeout)); return self.responses.pop(0)
+        self.calls.append((url, headers, timeout))
+        response = self.responses.pop(0)
+        if isinstance(response, BaseException): raise response
+        return response
 
 def load_json(name): return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
 
@@ -95,3 +105,30 @@ def test_form4_fetch_uses_archive_url_and_final_transaction_limit(tmp_path):
     rows = client.get_form4_transactions("320193", "2026-09-17", limit=1)
     assert len(rows) == 1
     assert "/Archives/edgar/data/320193/000032019326000003/form4.xml" in session.calls[1][0]
+
+def test_transient_http_status_retries_with_exponential_backoff(tmp_path):
+    session = FakeSession([StatusResponse(429), StatusResponse(500), FakeResponse(load_json("aapl_submissions.json"))])
+    sleeps = []
+    client = SecEdgarClient("QuantConclave admin@example.com", tmp_path, request_interval_seconds=0, session=session, sleep=sleeps.append, retry_backoff_seconds=.1)
+    assert client.get_submissions("320193")["name"] == "Apple Inc."
+    assert sleeps == [.1, .2]
+
+def test_transient_request_exception_retries_then_succeeds(tmp_path):
+    session = FakeSession([requests.ConnectionError("temporary"), FakeResponse(load_json("aapl_submissions.json"))])
+    sleeps = []
+    client = SecEdgarClient("QuantConclave admin@example.com", tmp_path, request_interval_seconds=0, session=session, sleep=sleeps.append, retry_backoff_seconds=.25)
+    assert client.get_submissions("320193")["name"] == "Apple Inc."
+    assert sleeps == [.25]
+
+def test_non_retryable_4xx_fails_without_retry(tmp_path):
+    session = FakeSession([StatusResponse(403)])
+    client = SecEdgarClient("QuantConclave admin@example.com", tmp_path, request_interval_seconds=0, session=session, sleep=lambda _: None)
+    with pytest.raises(requests.HTTPError): client.get_submissions("320193")
+    assert len(session.calls) == 1
+
+def test_form4_limit_walks_filings_until_enough_transactions(tmp_path):
+    xml = (FIXTURES / "aapl_form4.xml").read_text(encoding="utf-8")
+    session = FakeSession([FakeResponse(load_json("aapl_submissions.json")), FakeResponse(text="<ownershipDocument/>"), FakeResponse(text=xml)])
+    client = SecEdgarClient("QuantConclave admin@example.com", tmp_path, request_interval_seconds=0, session=session, sleep=lambda _: None)
+    rows = client.get_form4_transactions("320193", "2026-09-17", limit=1)
+    assert len(rows) == 1 and len(session.calls) == 3

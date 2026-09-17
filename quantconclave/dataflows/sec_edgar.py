@@ -38,7 +38,8 @@ class SecEdgarClient:
                  request_interval_seconds: float = 0.12,
                  timeout_seconds: float = 10.0, session=None,
                  sleep: Callable[[float], None] = time.sleep,
-                 clock: Callable[[], float] = time.monotonic):
+                 clock: Callable[[], float] = time.monotonic,
+                 max_retries: int = 3, retry_backoff_seconds: float = 0.5):
         if not isinstance(user_agent, str) or not user_agent.strip():
             raise SecConfigurationError("SEC user_agent must identify an application and contact")
         self.user_agent = user_agent.strip()
@@ -49,6 +50,8 @@ class SecEdgarClient:
         self.session = session
         self.sleep = sleep
         self.clock = clock
+        self.max_retries = max(0, int(max_retries))
+        self.retry_backoff_seconds = max(0.0, retry_backoff_seconds)
         self._last_request: float | None = None
 
     def _get(self, url: str, is_json: bool = True) -> Any:
@@ -60,17 +63,32 @@ class SecEdgarClient:
             if is_json:
                 return json.loads(path.read_text(encoding="utf-8"))
             return path.read_text(encoding="utf-8")
-        if self._last_request is not None:
-            remaining = self.request_interval_seconds - (self.clock() - self._last_request)
-            if remaining > 0:
-                self.sleep(remaining)
         session = self.session
         if session is None:
             import requests
             session = requests.Session()
-        self._last_request = self.clock()
-        response = session.get(url, headers={"User-Agent": self.user_agent}, timeout=self.timeout_seconds)
-        response.raise_for_status()
+        import requests
+        for attempt in range(self.max_retries + 1):
+            if self._last_request is not None:
+                remaining = self.request_interval_seconds - (self.clock() - self._last_request)
+                if remaining > 0:
+                    self.sleep(remaining)
+            self._last_request = self.clock()
+            try:
+                status = 0
+                response = session.get(url, headers={"User-Agent": self.user_agent}, timeout=self.timeout_seconds)
+                status = getattr(response, "status_code", 200)
+                response.raise_for_status()
+                break
+            except requests.RequestException:
+                retryable = status == 429 or 500 <= status <= 599
+                if not retryable and status < 400:
+                    retryable = True
+                if not retryable or attempt >= self.max_retries:
+                    raise
+                self.sleep(self.retry_backoff_seconds * (2 ** attempt))
+        else:  # pragma: no cover
+            raise RuntimeError("SEC request retry loop exhausted")
         payload = response.json() if is_json else response.text
         path.write_text(json.dumps(payload, ensure_ascii=False) if is_json else payload, encoding="utf-8")
         meta.write_text(json.dumps({"fetched_at": time.time(), "url": url}), encoding="utf-8")
@@ -113,7 +131,7 @@ class SecEdgarClient:
         filings = [row for row in self.get_filings(cik, as_of, forms=("4",))]
         result = []
         cik10 = self._cik(cik)
-        for filing in filings[:limit]:
+        for filing in filings:
             accession = str(filing.get("accessionNumber", "")).replace("-", "")
             document = filing.get("primaryDocument", "")
             if not accession or not document:
@@ -122,7 +140,7 @@ class SecEdgarClient:
             result.extend(self.parse_form4(self._get(url, is_json=False)))
             if len(result) >= limit:
                 return result[:limit]
-        return result
+        return result[:limit]
 
     def parse_form4(self, xml_text: str) -> list[dict]:
         root = ET.fromstring(xml_text)
