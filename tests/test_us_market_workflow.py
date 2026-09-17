@@ -2,7 +2,74 @@
 
 import json
 
+import pytest
+
+from quantconclave.agents.utils.agent_utils import build_state_instrument_context
+from quantconclave.evidence import EvidenceItem, EvidencePack, EvidenceStatus
 from quantconclave.graph.trading_graph import QuantConclaveGraph
+from quantconclave.graph.propagation import Propagator
+from quantconclave.instruments import resolve_instrument
+
+
+def _fixed_evidence_pack(ticker, revenue=100):
+    return EvidencePack(
+        symbol=ticker,
+        analysis_date="2026-09-17",
+        items=(
+            EvidenceItem(
+                kind="financials", source="sec_edgar",
+                as_of="2026-06-30", filed_at="2026-08-01",
+                fetched_at="2026-09-17T00:00:00Z",
+                status=EvidenceStatus.AVAILABLE,
+                payload={"revenue": revenue},
+            ),
+            EvidenceItem(
+                kind="institutional_holders", source="sec_13f",
+                as_of="2026-06-30", filed_at="2026-08-14",
+                fetched_at="2026-09-17T00:00:00Z",
+                status=EvidenceStatus.NO_DATA, payload={},
+            ),
+        ),
+    )
+
+
+def _fixed_us_state(ticker="AAPL", revenue=100):
+    profile = resolve_instrument(ticker)
+    pack = _fixed_evidence_pack(ticker, revenue=revenue)
+    return Propagator().create_initial_state(
+        ticker,
+        "2026-09-17",
+        instrument_profile=profile.to_dict(),
+        evidence_pack=pack.to_dict(),
+    )
+
+
+@pytest.mark.parametrize("ticker", ["AAPL", "NVDA", "BRK.B"])
+def test_us_ticker_preparation_is_serializable_and_spy_benchmarked(ticker):
+    state = _fixed_us_state(ticker)
+
+    json.dumps(state, default=str)
+    assert state["instrument_profile"]["market"] == "US"
+    assert state["instrument_profile"]["currency"] == "USD"
+    assert state["instrument_profile"]["benchmark"] == "SPY"
+    assert state["evidence_pack"]["symbol"] == ticker
+
+
+def test_all_agent_contexts_share_the_same_core_financial_value():
+    state = _fixed_us_state(revenue=100)
+    contexts = [build_state_instrument_context(dict(state)) for _ in range(7)]
+
+    assert all("'revenue': 100" in context for context in contexts)
+    assert all("as_of=2026-06-30" in context for context in contexts)
+    assert all("filed_at=2026-08-01" in context for context in contexts)
+
+
+def test_us_context_uses_explicit_no_data_without_cn_only_terms():
+    context = build_state_instrument_context(_fixed_us_state(revenue=100))
+
+    assert "institutional_holders: NO_DATA" in context
+    assert "北向资金" not in context
+    assert "龙虎榜" not in context
 
 
 def _complete_state():

@@ -79,6 +79,16 @@ The capital-flow pipeline checks four properties:
 
 Configured providers may include Tushare, Eastmoney-related interfaces, AKShare, and yfinance. Routing and fallback logic improve resilience, but third-party data can still be delayed, incomplete, rate-limited, or unavailable.
 
+### Native US equity analysis (first release)
+
+Single-stock deep analysis accepts US symbols such as `AAPL`, `NVDA`, and `BRK.B`. The instrument resolver marks them as US equities in USD and uses `SPY` as the default comparison benchmark. This release covers the deep-analysis workflow only; US AI Pick, market-wide screening, universe management, and sector-rotation dashboards are not included.
+
+For SEC EDGAR data, set an identifying User-Agent in `.env` (for example, `QUANTCONCLAVE_SEC_USER_AGENT=QuantConclave your-email@example.com`). SEC does not require an API key, but it does require a descriptive User-Agent. A key for the selected LLM provider is still required to run the analysis. SEC filings and company facts are the primary sources for US identity, filings, and financial facts; yfinance supplies price/quote data and optional fallback market fields.
+
+Every evidence item carries an explicit status. `NO_DATA` means that the requested source returned no eligible observation as of the analysis date; it must not be interpreted as zero, neutral positioning, or evidence that an event did not occur. `DEGRADED` means an eligible fallback was used or a primary source was unavailable. US holder and insider evidence is not equivalent to A-share “main-force” or northbound-flow data, and 13F holdings are delayed quarterly disclosures rather than real-time positioning.
+
+Provider latency, filing delays, revisions, and incomplete coverage remain possible. Verify material conclusions against the original filing or market source; all output remains research-only and is not investment advice.
+
 When sufficient trading days and prices are available, saved recommendations can be resolved at 5-, 20-, and 60-day horizons for review and calibration. Resolution is an evaluation mechanism, not proof of alpha.
 
 ## Human-Reviewed Learning Loop
@@ -117,6 +127,7 @@ pip install -e .
 cp .env.example .env
 # Add the API key for your selected LLM provider.
 # TUSHARE_TOKEN is recommended for A-share capital-flow research.
+# For US SEC evidence, set QUANTCONCLAVE_SEC_USER_AGENT to an app/contact identity.
 
 python run_web.py
 ```
@@ -146,6 +157,9 @@ Both defaults come from `quantconclave/runtime_manifest.py` and can be overridde
 | `ANTHROPIC_API_KEY` | Anthropic provider | Anthropic is selected |
 | `GOOGLE_API_KEY` | Google provider | Google is selected |
 | `TUSHARE_TOKEN` | A-share flow, financial, and index data | Recommended for A-share workflows |
+| `QUANTCONCLAVE_SEC_USER_AGENT` | Identifies SEC EDGAR requests (`App name contact@example.com`) | Required for SEC-backed US evidence |
+| `QUANTCONCLAVE_SEC_REQUEST_INTERVAL_SECONDS` | Minimum delay between SEC requests | Optional; keep a courteous rate |
+| `QUANTCONCLAVE_SEC_TIMEOUT_SECONDS` | SEC request timeout | Optional |
 | `HTTP_PROXY` / `HTTPS_PROXY` | Proxy for selected overseas sources | Optional |
 | `NO_PROXY` | Direct routing for domestic sources | Recommended when using a proxy |
 

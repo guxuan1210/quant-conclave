@@ -72,6 +72,16 @@ Portfolio Manager → Buy / Overweight / Hold / Underweight / Sell
 
 数据按配置通过多个提供商获取。典型来源包括 Tushare、东方财富相关接口、AKShare 和 yfinance。系统支持回退与交叉验证，但不保证第三方接口始终可用、完整或无延迟。
 
+### 原生美股单股分析（首期）
+
+单股深度分析支持 `AAPL`、`NVDA`、`BRK.B` 等美股代码。市场识别层会将这类代码标记为美元计价的美国股票，并默认使用 `SPY` 作为比较基准。本期只覆盖单股 Deep Analysis；美股 AI Pick、全市场筛选、股票池管理和行业轮动看板不在本期范围内。
+
+使用 SEC EDGAR 数据时，请在 `.env` 中设置可识别的 User-Agent，例如 `QUANTCONCLAVE_SEC_USER_AGENT=QuantConclave your-email@example.com`。SEC 不需要 API Key，但要求请求携带应用名称和联系信息；运行智能体分析仍需配置所选 LLM 提供商的 API Key。SEC 申报和 company facts 是美股公司身份、公告与财务事实的主要来源；yfinance 提供价格、报价以及可选的市场字段降级数据。
+
+每条证据都有明确状态。`NO_DATA` 表示在分析日期之前，该来源没有返回符合条件的观测；它不等于数值为零、持仓中性或事件未发生。`DEGRADED` 表示主来源不可用或使用了符合条件的回退数据。美股持仓与内部人证据不能等同于 A 股“主力资金”或北向资金；13F 是延迟披露的季度证据，不代表实时仓位。
+
+数据提供商延迟、申报滞后、后续修订和覆盖不完整仍可能发生。重要结论应回查原始申报或行情来源；所有输出仍仅供研究，不构成投资建议。
+
 历史建议在有足够交易日和价格数据后可以结算 5/20/60 日结果，用于复盘与校准。该过程是评测工具，不是盈利证明。
 
 ## 人工审核的学习闭环
@@ -120,6 +130,7 @@ pip install -e .
 
 cp .env.example .env
 # 在 .env 中填写所选 LLM 的 API Key；A 股资金研究建议配置 TUSHARE_TOKEN。
+# 美股 SEC 证据需设置 QUANTCONCLAVE_SEC_USER_AGENT（应用名和联系邮箱）。
 
 python run_web.py
 ```
@@ -140,6 +151,9 @@ python run_web.py
 | `ANTHROPIC_API_KEY` | Anthropic 提供商 | 选择 Anthropic 时必需 |
 | `GOOGLE_API_KEY` | Google 提供商 | 选择 Google 时必需 |
 | `TUSHARE_TOKEN` | A 股资金流、财务及指数数据 | 推荐 |
+| `QUANTCONCLAVE_SEC_USER_AGENT` | 标识 SEC EDGAR 请求（`应用名 contact@example.com`） | 使用 SEC 美股证据时必需 |
+| `QUANTCONCLAVE_SEC_REQUEST_INTERVAL_SECONDS` | SEC 请求最小间隔 | 可选，建议保持友好频率 |
+| `QUANTCONCLAVE_SEC_TIMEOUT_SECONDS` | SEC 请求超时 | 可选 |
 | `HTTP_PROXY` / `HTTPS_PROXY` | 部分境外数据源代理 | 可选 |
 | `NO_PROXY` | 国内数据源代理绕过 | 推荐 |
 
