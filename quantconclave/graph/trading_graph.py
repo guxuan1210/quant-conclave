@@ -327,9 +327,19 @@ class QuantConclaveGraph:
         """Resolve an instrument profile and collect one shared evidence snapshot."""
         from quantconclave.instruments import resolve_instrument
         from quantconclave.evidence import build_evidence_pack
+        from quantconclave.dataflows.sec_edgar import SecEdgarClient
 
         profile = resolve_instrument(ticker, asset_type=asset_type)
-        pack = build_evidence_pack(profile, str(trade_date), self.config)
+        sec_client = None
+        user_agent = self.config.get("sec_user_agent", "")
+        if user_agent:
+            sec_client = SecEdgarClient(
+                user_agent=user_agent,
+                cache_dir=self.config.get("data_cache_dir", ""),
+                request_interval_seconds=self.config.get("sec_request_interval_seconds", 0.12),
+                timeout_seconds=self.config.get("sec_timeout_seconds", 10.0),
+            )
+        pack = build_evidence_pack(profile, str(trade_date), self.config, sec_client=sec_client)
         return profile.to_dict(), pack.to_dict()
 
     def _fetch_returns(

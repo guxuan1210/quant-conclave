@@ -670,6 +670,17 @@ class TestPortfolioManagerInjection:
         assert state["instrument_profile"]["market"] == "US"
         assert state["evidence_pack"]["quality"] == "complete"
 
+    def test_initial_state_does_not_share_nested_context_references(self):
+        profile = {"symbol": "AAPL", "metadata": {"exchange": "NASDAQ"}}
+        pack = {"items": [{"payload": {"revenue": 100}}]}
+        first = Propagator().create_initial_state(
+            "AAPL", "2026-09-17", instrument_profile=profile, evidence_pack=pack
+        )
+        first["instrument_profile"]["metadata"]["exchange"] = "NYSE"
+        first["evidence_pack"]["items"][0]["payload"]["revenue"] = 0
+        assert profile["metadata"]["exchange"] == "NASDAQ"
+        assert pack["items"][0]["payload"]["revenue"] == 100
+
     # past_context in initial state
 
     def test_past_context_in_initial_state(self):

@@ -1,5 +1,6 @@
 # quantconclave/graph/propagation.py
 
+from copy import deepcopy
 from typing import Dict, Any, List, Optional
 from quantconclave.agents.utils.agent_states import (
     AgentState,
@@ -33,8 +34,8 @@ class Propagator:
             "company_of_interest": ticker,
             "asset_type": asset_type,
             "trade_date": str(trade_date),
-            "instrument_profile": dict(instrument_profile or {}),
-            "evidence_pack": dict(evidence_pack or {}),
+            "instrument_profile": deepcopy(instrument_profile or {}),
+            "evidence_pack": deepcopy(evidence_pack or {}),
             "past_context": past_context,
             "human_feedback": "",
             "checkpoint_1_question": "",
