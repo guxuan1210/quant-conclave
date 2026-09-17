@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 
 import pytest
+import inspect
+import json
 
 from quantconclave.evidence import EvidenceStatus
 from quantconclave.evidence.builder import build_evidence_pack
@@ -44,20 +46,48 @@ def _fetchers():
 def test_us_pack_has_stable_order_and_sec_primary_identity():
     pack = build_evidence_pack(Profile("AAPL"), "2026-09-17", {}, sec_client=FakeSec(), market_fetchers=_fetchers())
     assert [item.kind for item in pack.items] == [
-        "identity", "price", "quote", "filings", "financials", "insider", "holders", "analyst", "benchmark"
+        "company_identity", "price_history", "quote", "filings", "financials", "insider_transactions", "institutional_holders", "analyst_ratings", "benchmark_context"
     ]
-    assert pack.get("identity").source == "sec"
+    assert pack.get("company_identity").source == "sec"
     assert pack.get("financials").status is EvidenceStatus.DEGRADED
 
 
 def test_optional_empty_payload_is_no_data_and_required_price_fails():
     fetchers = _fetchers()
     fetchers["holders"] = lambda *args, **kwargs: []
+    fetchers["price_history"] = lambda *args, **kwargs: [{"date": "2026-09-17", "close": 225}]
+    pack = build_evidence_pack({"symbol": "AAPL", "market": "US"}, "2026-09-17", {}, sec_client=FakeSec(), market_fetchers=fetchers)
+    assert pack.get("institutional_holders").status is EvidenceStatus.NO_DATA
+
+
+def test_price_required_exact_message():
+    fetchers = _fetchers()
     fetchers["price_history"] = lambda *args, **kwargs: []
-    with pytest.raises(RuntimeError, match="price"):
+    with pytest.raises(RuntimeError, match="required price history"):
         build_evidence_pack({"symbol": "AAPL", "market": "US"}, "2026-09-17", {}, sec_client=FakeSec(), market_fetchers=fetchers)
 
 
 def test_non_us_pack_is_minimal_identity_and_price():
     pack = build_evidence_pack({"symbol": "0700.HK", "market": "HK"}, "2026-09-17", {}, market_fetchers=_fetchers())
-    assert [item.kind for item in pack.items] == ["identity", "price"]
+    assert [item.kind for item in pack.items] == ["company_identity", "price_history"]
+
+
+def test_identity_yfinance_fallback_is_degraded():
+    fetchers = _fetchers()
+    class BrokenSec(FakeSec):
+        def resolve_cik(self, ticker): raise RuntimeError("offline")
+    pack = build_evidence_pack({"symbol": "AAPL", "market": "US"}, "2026-09-17", {}, sec_client=BrokenSec(), market_fetchers=fetchers)
+    assert pack.get("company_identity").status is EvidenceStatus.DEGRADED
+
+
+def test_wrapper_signatures_and_json_safe():
+    from quantconclave.dataflows import us_market
+    expected = {
+        "fetch_price_history": ["symbol", "analysis_date", "lookback_days"],
+        "fetch_identity": ["symbol", "analysis_date"], "fetch_quote": ["symbol", "analysis_date"],
+        "fetch_yfinance_financials": ["symbol", "analysis_date"], "fetch_holders": ["symbol", "analysis_date"],
+        "fetch_analyst_ratings": ["symbol", "analysis_date"], "fetch_benchmark_context": ["symbol", "benchmark", "analysis_date"],
+    }
+    for name, params in expected.items():
+        assert list(inspect.signature(getattr(us_market, name)).parameters) == params
+    assert json.dumps({"x": [{"date": "2026-09-17", "value": 1}]})
