@@ -15,6 +15,8 @@ def _info(symbol):
 
 
 def _safe(value):
+    if value is None or value is pd.NA:
+        return None
     if isinstance(value, (datetime, date, pd.Timestamp)):
         return value.isoformat()
     if hasattr(value, "item"):
@@ -33,9 +35,8 @@ def fetch_price_history(symbol, analysis_date, lookback_days=120):
     frame = yf_retry(lambda: _yf_ticker(symbol).history(start=start, end=end))
     if frame is None or frame.empty:
         return []
-    frame = frame.reset_index()
-    rows = _safe(frame.reset_index().to_dict(orient="records"))
-    return [row for row in rows if str(row.get("Date", row.get("date", "")))[:10] <= cutoff.isoformat()]
+    rows = _records(frame, cutoff)
+    return rows or None
 
 
 def fetch_identity(symbol, analysis_date):
@@ -51,7 +52,22 @@ def fetch_quote(symbol, analysis_date):
 def _frame_records(frame):
     if frame is None or getattr(frame, "empty", True):
         return []
-    return frame.reset_index().to_dict(orient="records")
+    return _records(frame)
+
+
+def _records(frame, cutoff=None):
+    data = frame.copy()
+    index_dates = pd.to_datetime(data.index, errors="coerce")
+    has_index_dates = len(index_dates) and index_dates.notna().all()
+    if has_index_dates:
+        data = data.reset_index(drop=True)
+        data.insert(0, "date", index_dates)
+    else:
+        data = data.reset_index(drop=True)
+    rows = _safe(data.to_dict(orient="records"))
+    if cutoff is not None:
+        rows = [r for r in rows if str(r.get("date", ""))[:10] <= cutoff.isoformat()]
+    return rows
 
 
 def fetch_yfinance_financials(symbol, analysis_date):
@@ -62,7 +78,8 @@ def fetch_yfinance_financials(symbol, analysis_date):
             result[name] = _frame_records(yf_retry(lambda n=name: getattr(ticker, n)))
         except Exception:
             result[name] = []
-    return _safe({key: value for key, value in result.items() if value})
+    result = _safe({key: value for key, value in result.items() if value})
+    return result or None
 
 
 def fetch_holders(symbol, analysis_date):
@@ -75,7 +92,8 @@ def fetch_holders(symbol, analysis_date):
                 result[name] = rows
         except Exception:
             pass
-    return _safe(result)
+    result = _safe(result)
+    return result or None
 
 
 def fetch_analyst_ratings(symbol, analysis_date):
@@ -88,8 +106,10 @@ def fetch_analyst_ratings(symbol, analysis_date):
                 result[name] = rows
         except Exception:
             pass
-    return _safe(result)
+    result = _safe(result)
+    return result or None
 
 
 def fetch_benchmark_context(symbol, benchmark, analysis_date):
-    return {"benchmark": benchmark, "price_history": fetch_price_history(benchmark, analysis_date)}
+    payload = {"benchmark": benchmark, "price_history": fetch_price_history(benchmark, analysis_date)}
+    return payload if payload["price_history"] else None

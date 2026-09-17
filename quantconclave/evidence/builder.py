@@ -26,10 +26,10 @@ def _call(fn, symbol, analysis_date, config):
 def _optional(fn, symbol, analysis_date, config, *, benchmark=None):
     try:
         if benchmark is not None:
-            return fn(symbol, benchmark, analysis_date), EvidenceStatus.AVAILABLE
+            return fn(symbol, benchmark, analysis_date), None
         return _call(fn, symbol, analysis_date, config), None
     except Exception:
-        return {}, EvidenceStatus.ERROR
+        return None, EvidenceStatus.ERROR
 
 
 def _item(kind, source, as_of, payload, status=None, **kwargs):
@@ -60,7 +60,10 @@ def build_evidence_pack(profile, analysis_date, config, *, sec_client=None, mark
     if sec_identity:
         identity = _item("company_identity", "sec", analysis_date, sec_identity)
     else:
-        identity_payload = _call(fetchers["identity"], symbol, analysis_date, config)
+        try:
+            identity_payload = _call(fetchers["identity"], symbol, analysis_date, config)
+        except Exception:
+            identity_payload = None
         if not identity_payload:
             raise RuntimeError(f"required company identity unavailable for {symbol}")
         identity = _item("company_identity", "yfinance", analysis_date, identity_payload, EvidenceStatus.DEGRADED)
@@ -81,9 +84,9 @@ def build_evidence_pack(profile, analysis_date, config, *, sec_client=None, mark
         except Exception:
             financials = {}
     if not financials:
-        financials, _ = _optional(fetchers["financials"], symbol, analysis_date, config)
+        financials, fallback_status = _optional(fetchers["financials"], symbol, analysis_date, config)
         financial_source = "yfinance"
-    items.append(_item("financials", financial_source, analysis_date, financials, EvidenceStatus.AVAILABLE if financial_source == "sec" and financials else (EvidenceStatus.DEGRADED if financials else EvidenceStatus.NO_DATA)))
+    items.append(_item("financials", financial_source, analysis_date, financials, EvidenceStatus.AVAILABLE if financial_source == "sec" and financials else (fallback_status or (EvidenceStatus.DEGRADED if financials else EvidenceStatus.NO_DATA))))
     try: insider = sec.get_form4_transactions(cik, analysis_date) if sec and cik else []
     except Exception: insider = None
     items.append(_item("insider_transactions", "sec", analysis_date, insider or {}, EvidenceStatus.ERROR if insider is None else None))

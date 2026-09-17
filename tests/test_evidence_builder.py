@@ -79,6 +79,38 @@ def test_identity_yfinance_fallback_is_degraded():
     pack = build_evidence_pack({"symbol": "AAPL", "market": "US"}, "2026-09-17", {}, sec_client=BrokenSec(), market_fetchers=fetchers)
     assert pack.get("company_identity").status is EvidenceStatus.DEGRADED
 
+def test_identity_fallback_exception_has_exact_required_error():
+    class BrokenSec(FakeSec):
+        def resolve_cik(self, ticker): raise RuntimeError("offline")
+    fetchers = _fetchers()
+    fetchers["identity"] = lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("bad"))
+    with pytest.raises(RuntimeError, match="^required company identity unavailable for AAPL$"):
+        build_evidence_pack({"symbol": "AAPL", "market": "US"}, "2026-09-17", {}, sec_client=BrokenSec(), market_fetchers=fetchers)
+
+def test_optional_benchmark_none_is_no_data_and_financial_error_is_retained():
+    class BadSec(FakeSec):
+        def get_company_facts(self, cik): raise RuntimeError("facts down")
+        def get_filings(self, *args, **kwargs): raise RuntimeError("filings down")
+        def get_form4_transactions(self, *args, **kwargs): raise RuntimeError("form4 down")
+    fetchers = _fetchers()
+    fetchers["financials"] = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("yf down"))
+    fetchers["benchmark_context"] = lambda *args, **kwargs: None
+    pack = build_evidence_pack({"symbol": "AAPL", "market": "US"}, "2026-09-17", {}, sec_client=BadSec(), market_fetchers=fetchers)
+    assert pack.get("financials").status is EvidenceStatus.ERROR
+    assert pack.get("benchmark_context").status is EvidenceStatus.NO_DATA
+    assert pack.get("filings").status is EvidenceStatus.ERROR
+
+def test_unamed_index_price_rows_are_normalized_and_json_safe(monkeypatch):
+    import pandas as pd
+    from quantconclave.dataflows import us_market
+    class Ticker:
+        def history(self, **kwargs):
+            return pd.DataFrame({"Close": [1, 2], "Value": [pd.NA, 3]}, index=pd.to_datetime(["2026-09-16", "2026-09-18"]))
+    monkeypatch.setattr(us_market, "_yf_ticker", lambda symbol: Ticker())
+    rows = us_market.fetch_price_history("AAPL", "2026-09-17", 120)
+    assert rows == [{"date": "2026-09-16T00:00:00", "Close": 1, "Value": None}]
+    json.dumps(rows)
+
 
 def test_wrapper_signatures_and_json_safe():
     from quantconclave.dataflows import us_market
