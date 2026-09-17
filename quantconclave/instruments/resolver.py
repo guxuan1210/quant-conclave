@@ -24,7 +24,7 @@ def resolve_instrument(symbol: str, asset_type: str = "stock") -> InstrumentProf
         exchange = normalized.rsplit(".", 1)[1]
         return InstrumentProfile(
             normalized, asset_type, Market.CN, exchange, "CNY",
-            "Asia/Shanghai", "XSHG" if exchange == "SH" else "XSHE",
+            "Asia/Shanghai", "XSHG" if exchange == "SH" else ("XBEJ" if exchange == "BJ" else "XSHE"),
             "000300.SH", "CITICS", ("cn_money_flow", "cn_filings"),
         )
     for suffix, values in _SUFFIXES.items():
@@ -37,7 +37,9 @@ def resolve_instrument(symbol: str, asset_type: str = "stock") -> InstrumentProf
     if _US.fullmatch(normalized):
         return InstrumentProfile(
             normalized, asset_type, Market.US, "US", "USD",
-            "America/New_York", "XNYS", "SPY", "GICS",
+            "America/New_York", "XNAS", "SPY", "GICS",
             ("sec_filings", "form4", "institutional_holders", "analyst_ratings"),
         )
     raise ValueError(f"Unable to resolve market for ticker '{symbol}'")
+
+
