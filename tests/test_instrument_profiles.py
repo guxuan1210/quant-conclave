@@ -70,4 +70,3 @@ def test_rejects_unsupported_ticker():
 def test_profile_round_trip_is_json_safe():
     profile = resolve_instrument("NVDA")
     assert type(profile).from_dict(profile.to_dict()) == profile
-

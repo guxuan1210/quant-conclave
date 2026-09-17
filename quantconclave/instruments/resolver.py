@@ -41,8 +41,3 @@ def resolve_instrument(symbol: str, asset_type: str = "stock") -> InstrumentProf
             ("sec_filings", "form4", "institutional_holders", "analyst_ratings"),
         )
     raise ValueError(f"Unable to resolve market for ticker '{symbol}'")
-
-
-
-
-
