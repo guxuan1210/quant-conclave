@@ -216,6 +216,9 @@ class PredictionAgent:
         """Gather Smart Money Score + analyst reports for Tool C."""
         context: dict = {"smart_money": {}, "capital_flow_report": "",
                           "analyst_reports": {}}
+        from quantconclave.dataflows.ticker_utils import is_cn_ticker
+        if not is_cn_ticker(ticker):
+            return context
         try:
             from quantconclave.sector_scan.smart_money_score import detect_smart_money
             sm_result = detect_smart_money(ticker, config)

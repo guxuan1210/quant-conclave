@@ -44,7 +44,15 @@ def build_evidence_pack(profile, analysis_date, config, *, sec_client=None, mark
     # Instrument profiles use the Market enum; normalize its value rather than
     # relying on ``str(enum)`` (which yields ``Market.US``).
     market = str(getattr(market_value, "value", market_value)).upper()
-    fetchers = {name: getattr(us_market, name) for name in ("fetch_price_history", "fetch_identity", "fetch_quote", "fetch_yfinance_financials", "fetch_holders", "fetch_analyst_ratings", "fetch_benchmark_context")}
+    fetchers = {
+        "price_history": us_market.fetch_price_history,
+        "identity": us_market.fetch_identity,
+        "quote": us_market.fetch_quote,
+        "financials": us_market.fetch_yfinance_financials,
+        "holders": us_market.fetch_holders,
+        "analyst_ratings": us_market.fetch_analyst_ratings,
+        "benchmark_context": us_market.fetch_benchmark_context,
+    }
     if market_fetchers:
         fetchers.update(market_fetchers)
     try:
@@ -100,6 +108,6 @@ def build_evidence_pack(profile, analysis_date, config, *, sec_client=None, mark
     items.append(_item("institutional_holders", "yfinance", analysis_date, holders, hs))
     ratings, rs = _optional(fetchers["analyst_ratings"], symbol, analysis_date, config)
     items.append(_item("analyst_ratings", "yfinance", analysis_date, ratings, rs))
-    benchmark, bs = _optional(fetchers["benchmark_context"], symbol, analysis_date, config, benchmark=config.get("benchmark_ticker", "SPY"))
+    benchmark, bs = _optional(fetchers["benchmark_context"], symbol, analysis_date, config, benchmark=config.get("benchmark_ticker") or "SPY")
     items.append(_item("benchmark_context", "yfinance", analysis_date, benchmark, bs))
     return EvidencePack(symbol, analysis_date, tuple(items))

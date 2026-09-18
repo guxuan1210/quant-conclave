@@ -136,6 +136,9 @@ class SecEdgarClient:
             document = filing.get("primaryDocument", "")
             if not accession or not document:
                 continue
+            # ``primaryDocument`` points at the XSLT-rendered HTML view (e.g.
+            # xslF345X06/form4.xml); the raw XML is the basename without that wrapper.
+            document = document.rsplit("/", 1)[-1]
             url = ARCHIVE_DOCUMENT_URL.format(cik_int=str(int(cik10)), accession=accession, document=document)
             result.extend(self.parse_form4(self._get(url, is_json=False)))
             if len(result) >= limit:
@@ -145,7 +148,7 @@ class SecEdgarClient:
     def parse_form4(self, xml_text: str) -> list[dict]:
         root = ET.fromstring(xml_text)
         owners = _local(root, "reportingOwner")
-        owner = _value(owners[0], "reportingOwnerName") if owners else ""
+        owner = _value(owners[0], "rptOwnerName") if owners else ""
         rows = []
         for transaction in _local(root, "nonDerivativeTransaction"):
             code = _value(transaction, "transactionCode")
