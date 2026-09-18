@@ -92,10 +92,12 @@ def compute_summary(config: dict | None, period: str = "week") -> dict:
     direction = direction_accuracy(full)
 
     rating_avg = {}
+    rating_counts = {}
     for rating in ("Buy", "Overweight", "Hold", "Underweight", "Sell"):
         vals = [r["excess_return"] for r in full
                 if r.get("rating") == rating and r.get("excess_return") is not None]
         rating_avg[rating] = (sum(vals) / len(vals)) if vals else None
+        rating_counts[rating] = sum(1 for r in full if r.get("rating") == rating)
 
     result = {
         "period": period,
@@ -110,6 +112,7 @@ def compute_summary(config: dict | None, period: str = "week") -> dict:
         "validity": validity,
         "direction": direction,
         "rating_avg_excess": rating_avg,
+        "rating_counts": rating_counts,
         "weekly": weekly,
     }
 

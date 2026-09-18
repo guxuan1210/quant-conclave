@@ -4,101 +4,315 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>评测 Benchmark · QuantConclave</title>
+  <script src="/static/lightweight-charts.standalone.production.js"></script>
   <style>
-    :root { color-scheme: dark; }
-    body { margin: 0; font-family: -apple-system, "Segoe UI", "PingFang SC", sans-serif;
-           background: #0a1628; color: #e6edf3; padding: 24px; }
-    h1 { font-size: 20px; margin: 0 0 4px; }
-    .sub { color: #8b98a9; font-size: 13px; margin-bottom: 20px; }
-    .controls { margin-bottom: 16px; display: flex; gap: 8px; }
-    .controls button { background: #1c2b45; color: #e6edf3; border: 1px solid #2c3e5d;
-                       padding: 7px 14px; border-radius: 6px; cursor: pointer; }
-    .controls button.active { background: #2f6fed; border-color: #2f6fed; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-    .card { background: #101f38; border: 1px solid #1f3050; border-radius: 10px; padding: 14px; }
-    .card .k { color: #8b98a9; font-size: 12px; margin-bottom: 6px; }
-    .card .v { font-size: 20px; font-weight: 600; }
-    .pos { color: #3fb950; } .neg { color: #f85149; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
-    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #1f3050; }
-    th { color: #8b98a9; font-weight: 500; }
-    .section { margin-top: 28px; }
-    .section h2 { font-size: 15px; margin: 0 0 8px; }
-    .muted { color: #8b98a9; }
+    :root {
+      --bg: #ffffff;
+      --panel: #f6f8fa;
+      --border: #d0d7de;
+      --text: #1f2328;
+      --muted: #656d76;
+      --accent: #0969da;
+      --green: #1a7f37;
+      --red: #cf222e;
+      --gold: #9a6700;
+      --purple: #8250df;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", Helvetica, Arial, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .topbar {
+      display: flex; align-items: center; gap: 16px;
+      padding: 12px 24px; background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .topbar .brand { font-size: 15px; font-weight: 700; color: var(--accent); letter-spacing: -0.3px; }
+    .topbar .crumb { font-size: 13px; color: var(--muted); }
+    .topbar .spacer { flex: 1; }
+
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 24px; }
+    h1 { font-size: 20px; margin-bottom: 4px; }
+    .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+
+    .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .seg button {
+      padding: 6px 16px; background: var(--bg); color: var(--muted);
+      border: none; border-right: 1px solid var(--border); font-size: 12px; cursor: pointer;
+    }
+    .seg button:last-child { border-right: none; }
+    .seg button.active { background: var(--accent); color: #fff; }
+    .toolbar .refresh { margin-left: auto; padding: 6px 14px; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 6px; color: var(--text);
+      font-size: 12px; cursor: pointer; }
+    .toolbar .refresh:hover { background: var(--panel); }
+
+    /* Metric cards */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+    .card .k { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+    .card .v { font-size: 22px; font-weight: 600; line-height: 1.1; }
+    .card .s { font-size: 11px; color: var(--muted); margin-top: 6px; }
+    .pos { color: var(--green); }
+    .neg { color: var(--red); }
+    .neutral { color: var(--muted); }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .badge.effective { background: #dafbe1; color: #116329; }
+    .badge.not_effective { background: #ffebe9; color: #a40e26; }
+    .badge.insufficient_data { background: #fff8c5; color: #7d4e00; }
+
+    /* Sections */
+    .section { margin-bottom: 28px; }
+    .section h2 { font-size: 15px; margin-bottom: 4px; }
+    .section .hint { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+
+    .chart-box { border: 1px solid var(--border); border-radius: 8px; padding: 8px; background: #fff; }
+    #nav-chart { width: 100%; height: 300px; }
+    .chart-empty { display: flex; align-items: center; justify-content: center; height: 300px;
+      color: var(--muted); font-size: 13px; border: 1px dashed var(--border); border-radius: 8px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; background: var(--panel); white-space: nowrap; }
+    tr:hover td { background: #f6f8fa; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .empty-row td { color: var(--muted); text-align: center; padding: 18px; }
+
+    .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .pill.Buy, .pill.Overweight { background: #dafbe1; color: #116329; }
+    .pill.Sell, .pill.Underweight { background: #ffebe9; color: #a40e26; }
+    .pill.Hold { background: #eaeef2; color: #57606a; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } }
+
+    .foot { color: var(--muted); font-size: 12px; margin-top: 32px; padding-top: 16px;
+      border-top: 1px solid var(--border); }
   </style>
 </head>
 <body>
-  <h1>投资效果评测 · Benchmark</h1>
-  <div class="sub">前瞻纸面交易 · 5/20/60 交易日结算 · 50% 沪深300 + 50% 中证500 基准 · 截至 {{ today }}</div>
-
-  <div class="controls">
-    <button data-period="week" class="active">周 (5日)</button>
-    <button data-period="month">月 (20日)</button>
-    <button data-period="quarter">季 (60日)</button>
+  <div class="topbar">
+    <span class="brand">QuantConclave</span>
+    <span class="crumb">/ 投资效果评测 · Benchmark</span>
+    <span class="spacer"></span>
+    <a href="/">← 返回主面板</a>
   </div>
 
-  <div class="cards" id="cards"></div>
+  <div class="wrap">
+    <h1>投资效果评测 · Benchmark</h1>
+    <div class="sub">前瞻纸面交易 · 下一交易日开盘入场 · 5/20/60 交易日退出 · 20bp 摩擦 · 50% 沪深300 + 50% 中证500 基准 · 截至 {{ today }}</div>
 
-  <div class="section" id="weekly-section">
-    <h2>周度明细</h2>
-    <table id="weekly-table"></table>
-  </div>
+    <div class="toolbar">
+      <div class="seg" id="period-seg">
+        <button data-period="week" class="active">周 (5日)</button>
+        <button data-period="month">月 (20日)</button>
+        <button data-period="quarter">季 (60日)</button>
+      </div>
+      <button class="refresh" onclick="reload()">刷新</button>
+    </div>
 
-  <div class="section">
-    <h2>评测样本</h2>
-    <table id="cases-table"></table>
+    <div class="cards" id="cards"></div>
+
+    <div class="section">
+      <h2>净值曲线 · 组合 vs 基准</h2>
+      <div class="hint">组合 = 每周按评级/置信度/主力评分选取前 3 只看多标的等权；基准 = 沪深300/中证500 各半。</div>
+      <div class="chart-box" id="chart-box">
+        <div id="nav-chart"></div>
+        <div class="chart-empty" id="chart-empty" style="display:none">暂无成熟周期数据，等待首个结算周期（5 个交易日后）</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="section">
+        <h2>周度表现</h2>
+        <div class="hint">按周期聚合的组合净收益、基准收益与超额。</div>
+        <table id="weekly-table"></table>
+      </div>
+      <div class="section">
+        <h2>评级表现</h2>
+        <div class="hint">不同评级的数量与平均超额收益（已结算样本）。</div>
+        <table id="rating-table"></table>
+      </div>
+    </div>
+
+    <div class="section" id="ablation-section" style="display:none">
+      <h2>消融对比 · 完整流水线 vs 单模型</h2>
+      <div class="hint">同一标的：完整多智能体流水线决策 vs 单次 LLM 消融决策的策略收益差（月度）。</div>
+      <table id="ablation-table"></table>
+    </div>
+
+    <div class="section">
+      <h2>评测样本</h2>
+      <div class="hint">当前已采样并完成分析（尚未结算）的标的与预测。</div>
+      <table id="cases-table"></table>
+    </div>
+
+    <div class="foot">
+      结算语义：case 的 full 预测 5 日 horizon 结算后标记 settled；20/60 日与单模型 horizon 继续逐日补算。数据由每日 evaluation_settle 任务自动回填。
+    </div>
   </div>
 
 <script>
 const fmtPct = (x, d = 2) => x == null ? "—" : (x * 100).toFixed(d) + "%";
-const cls = (x) => x == null ? "" : (x > 0 ? "pos" : (x < 0 ? "neg" : ""));
+const fmtNum = (x, d = 2) => x == null ? "—" : Number(x).toFixed(d);
+const cls = (x) => x == null ? "" : (x > 0 ? "pos" : (x < 0 ? "neg" : "neutral"));
+const VALIDITY_LABEL = { effective: "有效", not_effective: "未达标", insufficient_data: "数据不足" };
+const RATING_LABEL = { Buy: "买入", Overweight: "增持", Hold: "持有", Underweight: "减持", Sell: "卖出" };
+const STATUS_LABEL = { pending: "待结算", settled: "已结算", failed: "失败" };
 
-function renderCards(s) {
-  const validity = (s.validity || {}).status || "—";
-  const items = [
-    ["周期", s.period + " / " + s.horizon + "日"],
-    ["成熟周数", s.mature_weeks ?? "—"],
-    ["覆盖率", fmtPct(s.coverage_pct, 1)],
-    ["累计超额", fmtPct(s.cum_excess_return)],
-    ["年化信息比率", s.annualized_ir == null ? "—" : s.annualized_ir.toFixed(2)],
-    ["回撤差", fmtPct(s.max_drawdown_delta)],
-    ["有效性", validity],
-  ];
-  document.getElementById("cards").innerHTML = items.map(([k, v]) =>
-    `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+let currentPeriod = "week";
+
+function weekKeyToDate(wk) {
+  const m = /^(\d{4})-W(\d{2})$/.exec(wk || "");
+  if (!m) return "";
+  const year = +m[1], week = +m[2];
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const dow = jan4.getUTCDay() || 7;
+  const monday = new Date(jan4);
+  monday.setUTCDate(jan4.getUTCDate() - dow + 1 + (week - 1) * 7);
+  return monday.toISOString().slice(0, 10);
 }
 
-function renderWeekly(rows) {
+function renderCards(s) {
+  const d = s.direction || {};
+  const acc = d.accuracy == null ? "—" : (d.accuracy * 100).toFixed(0) + "%";
+  const validity = (s.validity || {}).status || "insufficient_data";
+  const items = [
+    ["有效性", VALIDITY_LABEL[validity] || validity, "", `<span class="badge ${validity}">${VALIDITY_LABEL[validity] || validity}</span>`],
+    ["成熟周数", s.mature_weeks ?? 0, "", ""],
+    ["覆盖率", fmtPct(s.coverage_pct, 1), "", ""],
+    ["累计超额", fmtPct(s.cum_excess_return), `<span class="${cls(s.cum_excess_return)}"></span>`, ""],
+    ["年化信息比率", fmtNum(s.annualized_ir), "", ""],
+    ["方向准确率", acc, d.directional_total != null ? `方向 ${d.directional_total} 次 · 观望 ${d.neutral ?? 0} 次` : "", ""],
+    ["回撤差", fmtPct(s.max_drawdown_delta), "", ""],
+  ];
+  document.getElementById("cards").innerHTML = items.map(([k, v, deco, badge]) =>
+    `<div class="card"><div class="k">${k}</div><div class="v ${cls(v === acc ? null : v)}">${badge || v}</div><div class="s">${deco}</div></div>`
+  ).join("");
+}
+
+function renderChart(weekly) {
+  const box = document.getElementById("chart-box");
+  const chartEl = document.getElementById("nav-chart");
+  const emptyEl = document.getElementById("chart-empty");
+  if (!weekly || !weekly.length) {
+    chartEl.style.display = "none";
+    emptyEl.style.display = "flex";
+    return;
+  }
+  chartEl.style.display = "block";
+  emptyEl.style.display = "none";
+
+  let portNav = 1, benchNav = 1;
+  const port = [], bench = [];
+  weekly.forEach(w => {
+    const t = weekKeyToDate(w.week_key);
+    portNav *= (1 + (w.portfolio_net_return ?? 0));
+    benchNav *= (1 + (w.benchmark_return ?? 0));
+    port.push({ time: t, value: portNav });
+    bench.push({ time: t, value: benchNav });
+  });
+
+  chartEl.innerHTML = "";
+  const chart = LightweightCharts.createChart(chartEl, {
+    autoSize: true, height: 300,
+    layout: { background: { type: "solid", color: "#ffffff" }, textColor: "#656d76" },
+    grid: { vertLines: { color: "#e8eaed" }, horzLines: { color: "#e8eaed" } },
+    crosshair: { mode: 0 },
+    rightPriceScale: { borderColor: "#d0d7de" },
+    timeScale: { borderColor: "#d0d7de" },
+  });
+  const portSeries = chart.addLineSeries({ color: "#0969da", lineWidth: 2, title: "组合" });
+  const benchSeries = chart.addLineSeries({ color: "#9a6700", lineWidth: 2, lineStyle: 2, title: "基准" });
+  portSeries.setData(port);
+  benchSeries.setData(bench);
+  chart.timeScale().fitContent();
+}
+
+function renderWeekly(weekly) {
   const el = document.getElementById("weekly-table");
-  if (!rows || !rows.length) { el.innerHTML = "<tr><td class='muted'>暂无成熟周数据</td></tr>"; return; }
-  el.innerHTML = "<tr><th>周</th><th>组合净收益</th><th>基准收益</th><th>超额</th><th>持仓</th></tr>" +
-    rows.map(w => `<tr>
+  if (!weekly || !weekly.length) {
+    el.innerHTML = `<tr class="empty-row"><td colspan="5">暂无成熟周期数据</td></tr>`;
+    return;
+  }
+  el.innerHTML = `<tr><th>周</th><th class="num">组合净收益</th><th class="num">基准收益</th><th class="num">超额</th><th class="num">持仓</th></tr>` +
+    weekly.map(w => `<tr>
       <td>${w.week_key}</td>
-      <td class="${cls(w.portfolio_net_return)}">${fmtPct(w.portfolio_net_return)}</td>
-      <td class="${cls(w.benchmark_return)}">${fmtPct(w.benchmark_return)}</td>
-      <td class="${cls(w.excess_return)}">${fmtPct(w.excess_return)}</td>
-      <td>${w.positions}</td></tr>`).join("");
+      <td class="num ${cls(w.portfolio_net_return)}">${fmtPct(w.portfolio_net_return)}</td>
+      <td class="num ${cls(w.benchmark_return)}">${fmtPct(w.benchmark_return)}</td>
+      <td class="num ${cls(w.excess_return)}">${fmtPct(w.excess_return)}</td>
+      <td class="num">${w.positions}</td></tr>`).join("");
+}
+
+function renderRating(s) {
+  const el = document.getElementById("rating-table");
+  const counts = s.rating_counts || {};
+  const avgs = s.rating_avg_excess || {};
+  const order = ["Buy", "Overweight", "Hold", "Underweight", "Sell"];
+  el.innerHTML = `<tr><th>评级</th><th class="num">数量</th><th class="num">平均超额</th></tr>` +
+    order.map(r => `<tr>
+      <td><span class="pill ${r}">${RATING_LABEL[r] || r}</span></td>
+      <td class="num">${counts[r] ?? 0}</td>
+      <td class="num ${cls(avgs[r])}">${fmtPct(avgs[r])}</td></tr>`).join("");
+}
+
+function renderAblation(ablation) {
+  const sec = document.getElementById("ablation-section");
+  if (!ablation || !ablation.pairs || !ablation.pairs.length) {
+    sec.style.display = "none";
+    return;
+  }
+  sec.style.display = "";
+  const el = document.getElementById("ablation-table");
+  const mean = fmtPct(ablation.mean_delta);
+  el.innerHTML = `<tr><th>标的</th><th class="num">完整策略收益</th><th class="num">单模型策略收益</th><th class="num">差值</th></tr>` +
+    ablation.pairs.map(p => `<tr>
+      <td>${p.ticker || ""}</td>
+      <td class="num ${cls(p.full_strategy_return)}">${fmtPct(p.full_strategy_return)}</td>
+      <td class="num ${cls(p.single_strategy_return)}">${fmtPct(p.single_strategy_return)}</td>
+      <td class="num ${cls(p.delta)}">${fmtPct(p.delta)}</td></tr>`).join("") +
+    `<tr><td><strong>平均差值</strong></td><td colspan="3" class="num ${cls(ablation.mean_delta)}"><strong>${mean}</strong></td></tr>`;
 }
 
 function renderCases(cases) {
   const el = document.getElementById("cases-table");
-  if (!cases || !cases.length) { el.innerHTML = "<tr><td class='muted'>暂无样本</td></tr>"; return; }
-  el.innerHTML = "<tr><th>周</th><th>标的</th><th>行业</th><th>来源</th><th>状态</th><th>评级</th></tr>" +
-    cases.map(c => `<tr>
-      <td>${c.week_key}</td>
-      <td>${c.company_name || ""} (${c.ticker})</td>
-      <td>${c.industry || ""}</td>
-      <td>${c.index_source || ""}</td>
-      <td>${c.status || ""}</td>
-      <td>${(c.predictions || []).map(p => p.rating || "Hold").join(", ") || "—"}</td></tr>`).join("");
+  if (!cases || !cases.length) {
+    el.innerHTML = `<tr class="empty-row"><td colspan="8">暂无样本</td></tr>`;
+    return;
+  }
+  el.innerHTML = `<tr><th>周</th><th>标的</th><th>行业</th><th>来源</th><th>状态</th><th>评级</th><th>置信度</th><th class="num">主力评分</th></tr>` +
+    cases.map(c => {
+      const pred = (c.predictions || []).find(p => p.variant === "full") || (c.predictions || [])[0];
+      const rating = pred ? pred.rating : "—";
+      const conf = pred ? pred.confidence : "—";
+      const sms = pred && pred.smart_money_score != null ? pred.smart_money_score : "—";
+      return `<tr>
+        <td>${c.week_key || ""}</td>
+        <td>${c.company_name || ""} <span class="muted">${c.ticker}</span></td>
+        <td>${c.industry || ""}</td>
+        <td>${c.index_source || ""}</td>
+        <td>${STATUS_LABEL[c.status] || c.status || ""}</td>
+        <td><span class="pill ${rating}">${RATING_LABEL[rating] || rating}</span></td>
+        <td>${conf || "—"}</td>
+        <td class="num">${sms}</td></tr>`;
+    }).join("");
 }
 
 async function loadSummary(period) {
   const r = await fetch(`/api/evaluation/summary?period=${period}`);
   const s = await r.json();
   renderCards(s);
+  renderChart(s.weekly || []);
   renderWeekly(s.weekly || []);
-  document.getElementById("weekly-section").style.display = period === "week" ? "" : "none";
+  renderRating(s);
+  renderAblation(s.ablation);
 }
 
 async function loadCases() {
@@ -106,11 +320,17 @@ async function loadCases() {
   renderCases(await r.json());
 }
 
-document.querySelectorAll(".controls button").forEach(btn => {
+function reload() {
+  loadSummary(currentPeriod);
+  loadCases();
+}
+
+document.querySelectorAll("#period-seg button").forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".controls button").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll("#period-seg button").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    loadSummary(btn.dataset.period);
+    currentPeriod = btn.dataset.period;
+    loadSummary(currentPeriod);
   });
 });
 

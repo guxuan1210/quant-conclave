@@ -116,6 +116,23 @@ def _record_timing(analyst_key, t_start, on_progress):
     return wall_ms
 
 
+def _tool_runtime_config() -> dict | None:
+    """RunnableConfig injecting a LangGraph Runtime for ``ToolNode.invoke``.
+
+    langgraph >= 1.0 requires a ``Runtime`` to be present in the config when a
+    ToolNode is invoked outside a compiled graph — the parallel runner calls it
+    directly from a worker thread, so no graph runtime exists there. Older
+    langgraph ignores the extra key, so this degrades to a plain invoke when
+    the Runtime API is absent.
+    """
+    try:
+        from langgraph.runtime import Runtime
+        from langgraph._internal._constants import CONF, CONFIG_KEY_RUNTIME
+        return {CONF: {CONFIG_KEY_RUNTIME: Runtime()}}
+    except ImportError:
+        return None
+
+
 def _run_analyst_loop(analyst_key, llm, state_snapshot, max_tool_calls, on_progress=None):
     """Run one analyst's full tool-calling loop; returns (analyst_key, report, wall_ms)."""
     t_start = time.monotonic()
@@ -141,6 +158,7 @@ def _run_analyst_loop(analyst_key, llm, state_snapshot, max_tool_calls, on_progr
         return analyst_key, report, _record_timing(analyst_key, t_start, on_progress)
 
     tool_node = ToolNode(tools, handle_tool_errors=True)
+    runtime_config = _tool_runtime_config()
     for round_num in range(max_tool_calls + 1):
         local_state = {**state_snapshot, "messages": messages}
         result = analyst_node(local_state)
@@ -150,7 +168,7 @@ def _run_analyst_loop(analyst_key, llm, state_snapshot, max_tool_calls, on_progr
             logger.info("Parallel analyst %s finished in %d round(s)", analyst_key, round_num)
             return analyst_key, report, _record_timing(analyst_key, t_start, on_progress)
         messages.append(last_msg)
-        tool_result = tool_node.invoke({"messages": [last_msg]})
+        tool_result = tool_node.invoke({"messages": [last_msg]}, config=runtime_config)
         messages.extend(tool_result["messages"])
 
     logger.warning("Parallel analyst %s hit max_tool_calls=%d", analyst_key, max_tool_calls)

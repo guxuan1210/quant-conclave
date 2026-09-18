@@ -14,17 +14,14 @@ logger = logging.getLogger(__name__)
 
 
 def _init_tushare():
-    """Initialize tushare with token from env or config."""
-    token = os.environ.get("TUSHARE_TOKEN", "")
-    if token:
-        ts.set_token(token)
-    return token
+    """Return the configured token without persisting it to the user home."""
+    return os.environ.get("TUSHARE_TOKEN", "")
 
 
 def _get_pro():
     """Get a tushare pro API instance, initializing if needed."""
-    _init_tushare()
-    return ts.pro_api()
+    token = _init_tushare()
+    return ts.pro_api(token) if token else ts.pro_api()
 
 
 def _format_ticker_ts(ticker: str) -> str:

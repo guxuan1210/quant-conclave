@@ -30,7 +30,7 @@ def _build_scheduler(config: dict) -> BackgroundScheduler:
     job_defaults = {
         "coalesce": True,
         "max_instances": 1,
-        "misfire_grace_time": 300,
+        "misfire_grace_time": 24 * 60 * 60,
     }
 
     return BackgroundScheduler(

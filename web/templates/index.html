@@ -34,6 +34,22 @@
   white-space: nowrap;
 }
 .ui-lang-toggle:hover { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.55); }
+.brand-benchmark-link {
+  margin-left: 10px;
+  flex-shrink: 0;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 999px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.brand-benchmark-link:hover { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.55); }
 
 /* === Top Tab Bar === */
 .top-tab-bar {
@@ -78,6 +94,7 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
   <span class="brand-logo">🛡️</span>
   <span class="brand-name">QuantConclave</span>
   <span class="brand-tagline" data-i18n="brand.tagline">AI 主力资金流向侦测 — 赋能散户追踪聪明钱足迹</span>
+  <a href="/benchmark" class="brand-benchmark-link" title="投资效果评测 · Benchmark">📈 评测</a>
   <button id="ui-lang-toggle" class="ui-lang-toggle" onclick="window.I18N&&window.I18N.toggle()" title="Switch language / 切换语言">EN</button>
 </div>
 
