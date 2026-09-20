@@ -66,7 +66,8 @@ def _run_weekly(config) -> dict:
 def _run_settle(config) -> dict:
     from datetime import datetime
     from web.trade_cal import get_open_days
-    if datetime.now().strftime("%Y%m%d") not in get_open_days():
+    open_days = get_open_days()
+    if open_days and datetime.now().strftime("%Y%m%d") not in open_days:
         return {"skipped": True, "reason": "not a trading day"}
     from quantconclave.evaluation.pipeline import settle_pending_cases
     summary = settle_pending_cases(config)

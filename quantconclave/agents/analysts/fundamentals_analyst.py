@@ -1,6 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from quantconclave.agents.utils.agent_utils import (
-    build_instrument_context,
+    build_state_instrument_context,
     get_balance_sheet,
     get_cashflow,
     get_fundamentals,
@@ -17,23 +17,23 @@ from quantconclave.agents.utils.eastmoney_tools import (
 )
 
 
+def _tools_for_market(market: str) -> list:
+    tools = [get_fundamentals, get_balance_sheet, get_cashflow,
+             get_income_statement, get_realtime_quote]
+    if market == "CN":
+        tools.extend([get_eastmoney_fundamentals, get_eastmoney_data])
+    return tools
+
+
 def create_fundamentals_analyst(llm):
     def fundamentals_analyst_node(state):
         current_date = state["trade_date"]
-        instrument_context = build_instrument_context(state["company_of_interest"])
+        instrument_context = build_state_instrument_context(state)
 
         capital_flow_report = state.get("capital_flow_report", "")
 
-        tools = [
-            get_fundamentals,
-            get_balance_sheet,
-            get_cashflow,
-            get_income_statement,
-            get_realtime_quote,
-            # 妙想(MX) real-time fundamentals from 东方财富 (CN stocks)
-            get_eastmoney_fundamentals,
-            get_eastmoney_data,
-        ]
+        market = str((state.get("instrument_profile") or {}).get("market", "UNKNOWN")).upper()
+        tools = _tools_for_market(market)
 
         system_message = (
             "=== YOUR MOST IMPORTANT REFERENCE: CAPITAL FLOW REPORT ===\n"

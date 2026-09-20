@@ -8,7 +8,7 @@ from langchain_core.messages import AIMessage
 
 from quantconclave.agents.schemas import TraderProposal, render_trader_proposal
 from quantconclave.agents.utils.agent_utils import (
-    build_instrument_context,
+    build_state_instrument_context,
     get_language_instruction,
 )
 from quantconclave.agents.utils.structured import (
@@ -24,7 +24,7 @@ def create_trader(llm):
         from quantconclave.graph.adjudicator import render_adjudication_notes
         company_name = state["company_of_interest"]
         asset_type = state.get("asset_type", "stock")
-        instrument_context = build_instrument_context(company_name, asset_type)
+        instrument_context = build_state_instrument_context(state)
         investment_plan = state["investment_plan"]
         human_feedback = state.get("human_feedback", "")
 
@@ -73,3 +73,4 @@ def create_trader(llm):
         }
 
     return functools.partial(trader_node, name="Trader")
+

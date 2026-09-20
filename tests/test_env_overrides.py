@@ -96,3 +96,15 @@ def test_unknown_env_var_is_ignored(monkeypatch):
         QUANTCONCLAVE_NONEXISTENT_KEY="oops",
     )
     assert "nonexistent_key" not in dc.DEFAULT_CONFIG
+
+
+def test_sec_settings_env_overrides(monkeypatch):
+    dc = _reload_with_env(
+        monkeypatch,
+        QUANTCONCLAVE_SEC_USER_AGENT="QuantConclave owner@example.com",
+        QUANTCONCLAVE_SEC_REQUEST_INTERVAL_SECONDS="0.25",
+        QUANTCONCLAVE_SEC_TIMEOUT_SECONDS="7.5",
+    )
+    assert dc.DEFAULT_CONFIG["sec_user_agent"] == "QuantConclave owner@example.com"
+    assert dc.DEFAULT_CONFIG["sec_request_interval_seconds"] == 0.25
+    assert dc.DEFAULT_CONFIG["sec_timeout_seconds"] == 7.5

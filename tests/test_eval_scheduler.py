@@ -65,10 +65,26 @@ def test_run_weekly_runs_pipeline(monkeypatch):
 
 
 @pytest.mark.unit
-def test_run_settle_skips_non_trading_day(monkeypatch):
-    monkeypatch.setattr(trade_cal, "get_open_days", lambda: set())
+def test_run_settle_skips_known_non_trading_day(monkeypatch):
+    monkeypatch.setattr(trade_cal, "get_open_days", lambda: {"19990101"})
     out = ES.run_evaluation_task("evaluation_settle", {})
     assert out["skipped"] is True
+
+
+@pytest.mark.unit
+def test_run_settle_continues_when_calendar_is_unavailable(monkeypatch):
+    """A calendar outage must not disable the idempotent settlement retry."""
+    from quantconclave.evaluation import pipeline as P
+    monkeypatch.setattr(trade_cal, "get_open_days", lambda: set())
+    monkeypatch.setattr(P, "settle_pending_cases",
+                        lambda c: {"settled": 0, "settled_horizons": 0,
+                                   "failed": 0, "skipped": 8})
+    monkeypatch.setattr(ES, "_push_due_reports", lambda c: [])
+
+    out = ES.run_evaluation_task("evaluation_settle", {})
+
+    assert out["skipped"] == 8
+    assert out["reports_pushed"] == 0
 
 
 @pytest.mark.unit

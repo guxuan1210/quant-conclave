@@ -323,6 +323,25 @@ class QuantConclaveGraph:
                 return benchmark
         return benchmark_map.get("", "SPY")
 
+    def _prepare_market_context(self, ticker: str, trade_date: str, asset_type: str) -> tuple[dict, dict]:
+        """Resolve an instrument profile and collect one shared evidence snapshot."""
+        from quantconclave.instruments import resolve_instrument
+        from quantconclave.evidence import build_evidence_pack
+        from quantconclave.dataflows.sec_edgar import SecEdgarClient
+
+        profile = resolve_instrument(ticker, asset_type=asset_type)
+        sec_client = None
+        user_agent = self.config.get("sec_user_agent", "")
+        if user_agent:
+            sec_client = SecEdgarClient(
+                user_agent=user_agent,
+                cache_dir=self.config.get("data_cache_dir", ""),
+                request_interval_seconds=self.config.get("sec_request_interval_seconds", 0.12),
+                timeout_seconds=self.config.get("sec_timeout_seconds", 10.0),
+            )
+        pack = build_evidence_pack(profile, str(trade_date), self.config, sec_client=sec_client)
+        return profile.to_dict(), pack.to_dict()
+
     def _fetch_returns(
         self, ticker: str, trade_date: str, holding_days: int = 5,
         benchmark: str = "SPY",
@@ -448,8 +467,10 @@ class QuantConclaveGraph:
         """Execute the graph and write the resulting state to disk and memory log."""
         # Initialize state — inject memory log context for PM.
         past_context = self.memory_log.get_past_context(ticker)
+        instrument_profile, evidence_pack = self._prepare_market_context(ticker, trade_date, asset_type)
         init_agent_state = self.propagator.create_initial_state(
-            ticker, trade_date, asset_type=asset_type, past_context=past_context
+            ticker, trade_date, asset_type=asset_type, past_context=past_context,
+            instrument_profile=instrument_profile, evidence_pack=evidence_pack,
         )
         # Run ML prediction for PM context (fail gracefully)
         try:
@@ -541,8 +562,10 @@ class QuantConclaveGraph:
         self._resolve_pending_entries(ticker)
 
         past_context = self.memory_log.get_past_context(ticker)
+        instrument_profile, evidence_pack = self._prepare_market_context(ticker, trade_date, "stock")
         init_state = self.propagator.create_initial_state(
-            ticker, trade_date, asset_type="stock", past_context=past_context
+            ticker, trade_date, asset_type="stock", past_context=past_context,
+            instrument_profile=instrument_profile, evidence_pack=evidence_pack,
         )
 
         # Inject reused reports from last analysis
@@ -582,7 +605,7 @@ class QuantConclaveGraph:
 
     def _log_state(self, trade_date, final_state):
         """Log the final state to a JSON file."""
-        self.log_states_dict[str(trade_date)] = {
+        logged_state = {
             "company_of_interest": final_state["company_of_interest"],
             "trade_date": final_state["trade_date"],
             "market_report": final_state["market_report"],
@@ -615,6 +638,24 @@ class QuantConclaveGraph:
             "final_trade_decision": final_state["final_trade_decision"],
         }
 
+        # Market context is deliberately stored as optional JSON fields.  This
+        # keeps legacy state files valid while making the data snapshot and its
+        # provenance available to history consumers for newer runs.
+        profile = final_state.get("instrument_profile") or {}
+        pack = final_state.get("evidence_pack") or {}
+        items = pack.get("items") or []
+        logged_state.update({
+            "instrument_profile": profile,
+            "evidence_as_of": pack.get("analysis_date", ""),
+            "evidence_quality": pack.get("quality", ""),
+            "evidence_sources": sorted({
+                item.get("source", "") for item in items
+                if isinstance(item, dict) and item.get("source")
+            }),
+            "evidence_pack": pack,
+        })
+        self.log_states_dict[str(trade_date)] = logged_state
+
         # Save to file. Reject ticker values that would escape the
         # results directory when joined as a path component.
         safe_ticker = safe_ticker_component(self.ticker)
@@ -623,7 +664,7 @@ class QuantConclaveGraph:
 
         log_path = directory / f"full_states_log_{trade_date}.json"
         with open(log_path, "w", encoding="utf-8") as f:
-            json.dump(self.log_states_dict[str(trade_date)], f, indent=4)
+            json.dump(logged_state, f, indent=4)
 
     def process_signal(self, full_signal):
         """Process a signal to extract the core decision."""

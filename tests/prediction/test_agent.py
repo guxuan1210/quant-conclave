@@ -76,6 +76,13 @@ class TestPredictionAgent:
         assert report.price_short is not None
         assert report.behavior is not None
 
+    def test_build_behavior_context_skips_cn_capital_flow_for_us_ticker(self, agent):
+        """A US ticker must not trigger A-share smart-money / capital-flow tools."""
+        with patch("quantconclave.sector_scan.smart_money_score.detect_smart_money") as mock_detect:
+            context = agent._build_behavior_context("AAPL", "2026-09-17", {})
+        mock_detect.assert_not_called()
+        assert context == {"smart_money": {}, "capital_flow_report": "", "analyst_reports": {}}
+
     def test_cross_validation_aligned(self, agent):
         """When A and B agree on direction, cross-validation is ALIGNED."""
         result = agent._cross_validate(

@@ -127,6 +127,20 @@ def test_add_task_writes_back_generated_job_id(manager):
     assert t["job_id"] == job_id
 
 
+def test_jobs_allow_a_day_for_sleep_resume_misfires(manager):
+    """A laptop wake-up should still run a daily evaluation missed earlier."""
+    manager.add_task({
+        "job_id": "resume-safe",
+        "name": "恢复补跑",
+        "task_type": "evaluation_settle",
+        "cron_expression": "30 15 * * 1-5",
+    })
+
+    job = manager._scheduler.get_job("resume-safe")
+
+    assert job.misfire_grace_time == 24 * 60 * 60
+
+
 def test_run_task_missing_job(manager):
     assert manager.run_task("nope") is False
     assert manager.delete_task("nope") is False

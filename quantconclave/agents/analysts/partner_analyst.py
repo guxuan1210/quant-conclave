@@ -1,6 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from quantconclave.agents.utils.agent_utils import (
-    build_instrument_context,
+    build_state_instrument_context,
     get_global_news,
     get_language_instruction,
     get_news,
@@ -115,7 +115,7 @@ def create_partner_analyst(llm):
         asset_type = state.get("asset_type", "stock")
         asset_label = "company" if asset_type == "stock" else "asset"
         ticker = state["company_of_interest"]
-        instrument_context = build_instrument_context(ticker, asset_type)
+        instrument_context = build_state_instrument_context(state)
         capital_flow_report = state.get("capital_flow_report", "")
 
         tools = [
@@ -163,3 +163,4 @@ def create_partner_analyst(llm):
         }
 
     return partner_analyst_node
+
