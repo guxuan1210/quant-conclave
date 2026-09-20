@@ -58,6 +58,37 @@ def test_form4_parser_returns_purchase_transaction(tmp_path):
     client = SecEdgarClient(user_agent="QuantConclave admin@example.com", cache_dir=tmp_path, session=FakeSession([]), sleep=lambda _: None)
     assert client.parse_form4(xml) == [{"owner":"Example Officer","transaction_date":"2026-09-01","code":"P","shares":1000.0,"price":225.5,"acquired_disposed":"A"}]
 
+def test_form4_parser_ignores_non_purchase_transactions(tmp_path):
+    xml = """<ownershipDocument xmlns="http://www.sec.gov/ownership/edisclosure">
+  <reportingOwner><reportingOwnerId><rptOwnerName>Example Officer</rptOwnerName></reportingOwnerId></reportingOwner>
+  <nonDerivativeTable>
+    <nonDerivativeTransaction>
+      <transactionCoding><transactionCode>S</transactionCode></transactionCoding>
+      <transactionAmounts><transactionShares><value>500</value></transactionShares></transactionAmounts>
+    </nonDerivativeTransaction>
+    <nonDerivativeTransaction>
+      <transactionCoding><transactionCode>P</transactionCode></transactionCoding>
+      <transactionDate><value>2026-09-01</value></transactionDate>
+      <transactionAmounts><transactionShares><value>1000</value></transactionShares><transactionPricePerShare><value>225.5</value></transactionPricePerShare><transactionAcquiredDisposedCode><value>A</value></transactionAcquiredDisposedCode></transactionAmounts>
+    </nonDerivativeTransaction>
+  </nonDerivativeTable>
+</ownershipDocument>"""
+    client = SecEdgarClient("QuantConclave admin@example.com", tmp_path, session=FakeSession([]), sleep=lambda _: None)
+    assert client.parse_form4(xml) == [{"owner": "Example Officer", "transaction_date": "2026-09-01",
+                                        "code": "P", "shares": 1000.0, "price": 225.5, "acquired_disposed": "A"}]
+
+
+def test_form4_fetch_strips_xsl_wrapper_from_primary_document(tmp_path):
+    xml = (FIXTURES / "aapl_form4.xml").read_text(encoding="utf-8")
+    session = FakeSession([FakeResponse(load_json("aapl_submissions.json")), FakeResponse(text=xml)])
+    client = SecEdgarClient("QuantConclave admin@example.com", tmp_path, session=session, sleep=lambda _: None)
+    rows = client.get_form4_transactions("320193", "2026-09-17", limit=1)
+    url = session.calls[1][0]
+    assert url.endswith("/form4.xml")
+    assert "xslF345X06" not in url
+    assert len(rows) == 1
+
+
 def test_cache_hit_reads_payload_and_metadata_without_network(tmp_path):
     session = FakeSession([FakeResponse(load_json("aapl_submissions.json"))])
     client = SecEdgarClient("QuantConclave admin@example.com", tmp_path, session=session, sleep=lambda _: None)

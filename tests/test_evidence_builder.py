@@ -106,6 +106,58 @@ def test_optional_benchmark_none_is_no_data_and_financial_error_is_retained():
     assert pack.get("benchmark_context").status is EvidenceStatus.NO_DATA
     assert pack.get("filings").status is EvidenceStatus.ERROR
 
+def test_default_fetcher_wiring_maps_kind_names_to_us_market_functions(monkeypatch):
+    from quantconclave.dataflows import us_market
+
+    def price(symbol, analysis_date, lookback_days=120):
+        return [{"date": "2026-09-17", "close": 225}]
+    def identity(symbol, analysis_date):
+        return {"name": "Apple Inc."}
+    def quote(symbol, analysis_date):
+        return {"price": 225}
+    def financials(symbol, analysis_date):
+        return {"revenue": 100}
+    def holders(symbol, analysis_date):
+        return [{"holder": "Fund"}]
+    def ratings(symbol, analysis_date):
+        return {"buy": 10}
+    def benchmark(symbol, benchmark, analysis_date):
+        return {"benchmark": benchmark}
+
+    monkeypatch.setattr(us_market, "fetch_price_history", price)
+    monkeypatch.setattr(us_market, "fetch_identity", identity)
+    monkeypatch.setattr(us_market, "fetch_quote", quote)
+    monkeypatch.setattr(us_market, "fetch_yfinance_financials", financials)
+    monkeypatch.setattr(us_market, "fetch_holders", holders)
+    monkeypatch.setattr(us_market, "fetch_analyst_ratings", ratings)
+    monkeypatch.setattr(us_market, "fetch_benchmark_context", benchmark)
+
+    pack = build_evidence_pack({"symbol": "AAPL", "market": "US"}, "2026-09-17", {}, sec_client=FakeSec())
+
+    assert [item.kind for item in pack.items] == [
+        "company_identity", "price_history", "quote", "filings", "financials",
+        "insider_transactions", "institutional_holders", "analyst_ratings", "benchmark_context",
+    ]
+    assert pack.get("price_history").status is EvidenceStatus.AVAILABLE
+    assert pack.get("benchmark_context").payload["benchmark"] == "SPY"
+
+
+def test_benchmark_ticker_none_defaults_to_spy():
+    seen = {}
+    fetchers = _fetchers()
+
+    def benchmark_spy(symbol, benchmark, analysis_date):
+        seen["benchmark"] = benchmark
+        return {"benchmark": benchmark}
+
+    fetchers["benchmark_context"] = benchmark_spy
+    pack = build_evidence_pack({"symbol": "AAPL", "market": "US"}, "2026-09-17",
+                               {"benchmark_ticker": None}, sec_client=FakeSec(), market_fetchers=fetchers)
+
+    assert seen["benchmark"] == "SPY"
+    assert pack.get("benchmark_context").status is EvidenceStatus.AVAILABLE
+
+
 def test_unamed_index_price_rows_are_normalized_and_json_safe(monkeypatch):
     import pandas as pd
     from quantconclave.dataflows import us_market
